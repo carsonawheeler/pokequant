@@ -44,7 +44,7 @@ export default function Home() {
           supabase
             .from('cards')
             .select(`
-              id, card_name, character_name, image_url,
+              id, tcg_id, card_name, character_name, image_url,
               nostalgia_score, character_premium_score, aesthetic_score,
               pull_cost_score, gradability_score, google_trends_score,
               is_competitive, set_median_sir_price, generation,
@@ -116,6 +116,7 @@ export default function Home() {
             set:                      c.sets ?? null,
             price:                    priceMap[c.id] ?? null,
             demand,
+            tcg_id: c.tcg_id ?? null,
           } satisfies Card
         }).filter((c: Card) => c.price != null)
 

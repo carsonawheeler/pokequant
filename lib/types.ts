@@ -12,8 +12,18 @@ export interface CardSet {
   era: string
 }
 
+export interface ModelPrediction {
+  predicted_price: number | null
+  ci_lower_90: number | null
+  ci_upper_90: number | null
+  signal: string | null
+  ratio: number | null
+  prediction_confidence: string | null
+}
+
 export interface Card {
   id: number
+  tcg_id: string | null
   card_name: string
   character_name: string | null
   image_url: string | null

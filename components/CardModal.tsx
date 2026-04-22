@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, SetData, PricePoint } from '@/lib/types'
+import { Card, SetData, PricePoint, ModelPrediction } from '@/lib/types'
 import { fmt, fmtP } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import PriceChart from './PriceChart'
@@ -14,9 +14,25 @@ interface CardModalProps {
 }
 
 export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
-  const [hist, setHist] = useState<PricePoint[] | null>(null)
+  const [hist,       setHist]       = useState<PricePoint[] | null>(null)
+  const [prediction, setPrediction] = useState<ModelPrediction | null | undefined>(undefined) // undefined = loading
 
   useEffect(() => {
+    async function fetchPrediction() {
+      if (!card.tcg_id) { setPrediction(null); return }
+      try {
+        const { data } = await supabase
+          .from('model_predictions')
+          .select('predicted_price, ci_lower_90, ci_upper_90, signal, ratio, prediction_confidence')
+          .eq('tcg_id', card.tcg_id)
+          .order('predicted_date', { ascending: false })
+          .limit(1)
+        setPrediction((data && data.length > 0) ? data[0] as ModelPrediction : null)
+      } catch {
+        setPrediction(null)
+      }
+    }
+
     async function fetchHistory() {
       try {
         const { data } = await supabase
@@ -33,6 +49,7 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
         setHist([])
       }
     }
+    fetchPrediction()
     fetchHistory()
 
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -163,21 +180,45 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
                 }}>XGBoost v8</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 7 }}>
-                {[
-                  { title: 'Fair Value',   desc: "Model's estimated price" },
-                  { title: '90% CI Range', desc: 'Price band model is 90% confident in' },
-                  { title: 'Signal',       desc: 'Under/fair/overvalued vs model' },
-                ].map(cell => (
-                  <div key={cell.title} style={{ background: 'var(--c1)', borderRadius: 7, padding: '8px 7px', textAlign: 'center' }}>
-                    <div style={{ fontFamily: 'var(--fm)', fontSize: 17, fontWeight: 600, color: 'var(--cborder)', marginBottom: 3 }}>—</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink)', fontWeight: 600, marginBottom: 2 }}>{cell.title}</div>
-                    <div style={{ fontSize: 9, color: 'var(--ink-light)', lineHeight: 1.3 }}>{cell.desc}</div>
-                  </div>
-                ))}
+                {(() => {
+                  const loading = prediction === undefined
+                  const p = prediction
+
+                  const signalColor = p?.signal === 'UNDERVALUED' ? 'var(--green)'
+                    : p?.signal === 'OVERVALUED' ? 'var(--red)'
+                    : p?.signal ? 'var(--ink)'
+                    : 'var(--cborder)'
+
+                  const fairValue = loading ? '…' : p?.predicted_price != null ? fmt(p.predicted_price) : '—'
+                  const ciRange   = loading ? '…' : (p?.ci_lower_90 != null && p?.ci_upper_90 != null)
+                    ? `${fmt(p.ci_lower_90)} – ${fmt(p.ci_upper_90)}`
+                    : '—'
+                  const signal    = loading ? '…' : p?.signal ?? '—'
+
+                  return [
+                    { title: 'Fair Value',   value: fairValue,  valueColor: 'var(--ink)',  desc: "Model's estimated price" },
+                    { title: '90% CI Range', value: ciRange,    valueColor: 'var(--ink)',  desc: 'Price band model is 90% confident in' },
+                    { title: 'Signal',       value: signal,     valueColor: signalColor,   desc: 'Under/fair/overvalued vs model' },
+                  ].map(cell => (
+                    <div key={cell.title} style={{ background: 'var(--c1)', borderRadius: 7, padding: '8px 7px', textAlign: 'center' }}>
+                      <div style={{
+                        fontFamily: 'var(--fm)', fontWeight: 600, marginBottom: 3,
+                        fontSize: cell.value.length > 12 ? 11 : 17,
+                        color: cell.value === '—' || cell.value === '…' ? 'var(--cborder)' : cell.valueColor,
+                      }}>
+                        {cell.value}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--ink)', fontWeight: 600, marginBottom: 2 }}>{cell.title}</div>
+                      <div style={{ fontSize: 9, color: 'var(--ink-light)', lineHeight: 1.3 }}>{cell.desc}</div>
+                    </div>
+                  ))
+                })()}
               </div>
-              <div style={{ marginTop: 9, fontSize: 10, color: 'var(--ink-light)', textAlign: 'center' }}>
-                Predictions syncing to database — available soon
-              </div>
+              {prediction === null && (
+                <div style={{ marginTop: 9, fontSize: 10, color: 'var(--ink-light)', textAlign: 'center' }}>
+                  Predictions syncing to database — available soon
+                </div>
+              )}
             </div>
           </div>
         </div>

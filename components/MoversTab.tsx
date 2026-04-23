@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Card } from '@/lib/types'
+import { Card, CardSet } from '@/lib/types'
 import { fmt } from '@/lib/utils'
+import SetSearch from './SetSearch'
 
 interface MoversTabProps {
   cards: Card[]
@@ -10,10 +11,31 @@ interface MoversTabProps {
 }
 
 export default function MoversTab({ cards, loading }: MoversTabProps) {
-  const [dir, setDir] = useState<'all' | 'up' | 'down'>('all')
+  const [dir,       setDir]       = useState<'all' | 'up' | 'down'>('all')
+  const [query,     setQuery]     = useState('')
+  const [activeSet, setActiveSet] = useState('')
+
+  const sets: CardSet[] = useMemo(() => {
+    const m = new Map<number, CardSet>()
+    cards.forEach(c => { if (c.set && !m.has(c.set.id)) m.set(c.set.id, c.set) })
+    return [...m.values()].sort((a, b) => a.id - b.id)
+  }, [cards])
 
   const movers = useMemo(() => {
-    const eligible = cards.filter(c => c.demand?.price_momentum_30d != null && c.price != null)
+    let eligible = cards.filter(c => c.demand?.price_momentum_30d != null && c.price != null)
+
+    // text search
+    if (query.trim()) {
+      const q = query.trim().toLowerCase()
+      eligible = eligible.filter(c =>
+        c.card_name?.toLowerCase().includes(q) ||
+        (c.character_name ?? '').toLowerCase().includes(q)
+      )
+    }
+
+    // set filter
+    if (activeSet) eligible = eligible.filter(c => String(c.set?.id) === activeSet)
+
     if (dir === 'up') {
       return eligible
         .filter(c => (c.demand!.price_momentum_30d ?? 0) > 0)
@@ -30,7 +52,7 @@ export default function MoversTab({ cards, loading }: MoversTabProps) {
     return eligible
       .sort((a, b) => Math.abs(b.demand!.price_momentum_30d!) - Math.abs(a.demand!.price_momentum_30d!))
       .slice(0, 100)
-  }, [cards, dir])
+  }, [cards, dir, query, activeSet])
 
   if (loading) {
     return (
@@ -44,7 +66,33 @@ export default function MoversTab({ cards, loading }: MoversTabProps) {
 
   return (
     <div>
-      {/* Filter buttons */}
+      {/* Search + set filter row */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ flex: '1 1 200px', position: 'relative' }}>
+          <svg
+            style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.4 }}
+            width="14" height="14" viewBox="0 0 14 14" fill="none"
+          >
+            <circle cx="6" cy="6" r="4.5" stroke="var(--ink)" strokeWidth="1.5" />
+            <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search card name…"
+            style={{
+              width: '100%', padding: '9px 12px 9px 32px',
+              background: 'var(--c1)', border: '1px solid var(--cborder)',
+              borderRadius: 8, fontSize: 13, color: 'var(--ink)', outline: 'none',
+            }}
+            onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
+            onBlur={e => (e.currentTarget.style.borderColor = 'var(--cborder)')}
+          />
+        </div>
+        <SetSearch sets={sets} activeSet={activeSet} setActiveSet={setActiveSet} />
+      </div>
+
+      {/* Direction toggle */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center' }}>
         {([
           { id: 'all',  label: 'All Movers' },

@@ -13,13 +13,23 @@ export default function MoversTab({ cards, loading }: MoversTabProps) {
   const [dir, setDir] = useState<'all' | 'up' | 'down'>('all')
 
   const movers = useMemo(() => {
-    let r = cards
-      .filter(c => c.demand?.price_momentum_30d != null && c.price != null)
+    const eligible = cards.filter(c => c.demand?.price_momentum_30d != null && c.price != null)
+    if (dir === 'up') {
+      return eligible
+        .filter(c => (c.demand!.price_momentum_30d ?? 0) > 0)
+        .sort((a, b) => b.demand!.price_momentum_30d! - a.demand!.price_momentum_30d!)
+        .slice(0, 100)
+    }
+    if (dir === 'down') {
+      return eligible
+        .filter(c => (c.demand!.price_momentum_30d ?? 0) < 0)
+        .sort((a, b) => a.demand!.price_momentum_30d! - b.demand!.price_momentum_30d!)
+        .slice(0, 100)
+    }
+    // 'all': sort by absolute momentum descending
+    return eligible
       .sort((a, b) => Math.abs(b.demand!.price_momentum_30d!) - Math.abs(a.demand!.price_momentum_30d!))
-      .slice(0, 40)
-    if (dir === 'up')   r = r.filter(c => (c.demand!.price_momentum_30d ?? 0) > 0)
-    if (dir === 'down') r = r.filter(c => (c.demand!.price_momentum_30d ?? 0) < 0)
-    return r
+      .slice(0, 100)
   }, [cards, dir])
 
   if (loading) {
@@ -88,12 +98,13 @@ export default function MoversTab({ cards, loading }: MoversTabProps) {
                 <div style={{ fontSize: 11, color: 'var(--ink-light)' }}>{card.set?.set_name}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{
+                <div style={{
                   fontFamily: 'var(--fm)', fontWeight: 700, fontSize: 19,
                   color: up ? 'var(--green)' : 'var(--red)', letterSpacing: '-0.02em',
                 }}>
                   {mom > 0 ? '+' : ''}{mom.toFixed(1)}%
-                </span>
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--ink-light)', marginTop: 2 }}>% change</div>
               </div>
               <div style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>
                 {fmt(card.price)}

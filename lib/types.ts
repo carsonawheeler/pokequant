@@ -19,6 +19,7 @@ export interface ModelPrediction {
   signal: string | null
   ratio: number | null
   prediction_confidence: string | null
+  predicted_date?: string
 }
 
 export interface Card {
@@ -39,6 +40,7 @@ export interface Card {
   set: CardSet | null
   price: number | null
   demand: DemandSignal | null
+  prediction: ModelPrediction | null
 }
 
 export interface SetPriceSnapshot {

@@ -19,33 +19,28 @@ function MomBadge({ value, lg }: { value: number | null | undefined, lg?: boolea
 }
 
 function SignalTag({ card }: { card: Card }) {
-  const mom = card.demand?.price_momentum_30d
-  const dem = card.demand?.demand_score
-  if (dem != null && dem >= 7.5 && mom != null && mom > 8)
-    return (
-      <span style={{
-        fontSize: 10, padding: '2px 8px', borderRadius: 20,
-        background: 'var(--gold)', color: 'white',
-        fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const,
-      }}>🔥 Hot</span>
-    )
-  if (mom != null && mom > 18)
-    return (
-      <span style={{
-        fontSize: 10, padding: '2px 8px', borderRadius: 20,
-        background: 'var(--green-bg)', color: 'var(--green)',
-        fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const,
-      }}>Rising</span>
-    )
-  if (mom != null && mom < -18)
-    return (
-      <span style={{
-        fontSize: 10, padding: '2px 8px', borderRadius: 20,
-        background: 'var(--red-bg)', color: 'var(--red)',
-        fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const,
-      }}>Cooling</span>
-    )
-  return null
+  const sig = card.prediction?.signal
+  if (!sig) return null
+
+  const cfg: Record<string, { bg: string; color: string; label: string }> = {
+    'UNDERVALUED': { bg: 'var(--green-bg)', color: 'var(--green)',     label: 'Undervalued' },
+    'OVERVALUED':  { bg: 'var(--red-bg)',   color: 'var(--red)',       label: 'Overvalued'  },
+    'FAIR VALUE':  { bg: 'var(--c2)',       color: 'var(--ink-light)', label: 'Fair'        },
+  }
+  const s = cfg[sig]
+  if (!s) return null
+
+  return (
+    <span style={{
+      fontSize: 10, padding: '2px 8px', borderRadius: 20,
+      background: s.bg, color: s.color,
+      fontWeight: 700, letterSpacing: '0.06em',
+      textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const,
+      border: sig === 'FAIR VALUE' ? '1px solid var(--cborder)' : 'none',
+    }}>
+      {s.label}
+    </span>
+  )
 }
 
 function DemBar({ score, noLabel }: { score: number | null, noLabel?: boolean }) {

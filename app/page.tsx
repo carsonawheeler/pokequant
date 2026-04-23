@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Card, SetData, DemandSignal } from '@/lib/types'
+import { Card, SetData, DemandSignal, ModelPrediction } from '@/lib/types'
 import Logo from '@/components/Logo'
 import CardGrid from '@/components/CardGrid'
 import SetsTab from '@/components/SetsTab'
@@ -48,7 +48,8 @@ export default function Home() {
               pull_cost_score, gradability_score, google_trends_score,
               is_competitive, set_median_sir_price, generation,
               sets(id, set_name, set_code, era),
-              card_demand_signals(demand_score, price_momentum_14d, price_momentum_30d, signal_date)
+              card_demand_signals(demand_score, price_momentum_14d, price_momentum_30d, signal_date),
+              model_predictions(predicted_price, ci_lower_90, ci_upper_90, signal, ratio, prediction_confidence, predicted_date)
             `)
             .eq('rarity_group', 'SIR')
             .order('card_name')
@@ -98,6 +99,11 @@ export default function Home() {
             (b.signal_date ?? '').localeCompare(a.signal_date ?? '')
           )[0] ?? null
 
+          const preds = (c.model_predictions ?? []) as ModelPrediction[]
+          const prediction = preds.sort((a, b) =>
+            (b.predicted_date ?? '').localeCompare(a.predicted_date ?? '')
+          )[0] ?? null
+
           return {
             id:                       c.id,
             card_name:                c.card_name,
@@ -115,6 +121,7 @@ export default function Home() {
             set:                      c.sets ?? null,
             price:                    priceMap[c.id] ?? null,
             demand,
+            prediction,
             tcg_id: c.tcg_id ?? null,
           } satisfies Card
         }).filter((c: Card) => c.price != null)

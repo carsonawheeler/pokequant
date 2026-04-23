@@ -30,6 +30,7 @@ interface CardGridProps {
 export default function CardGrid({ cards, loading, setsMap }: CardGridProps) {
   const [query,     setQuery]     = useState('')
   const [activeSet, setActiveSet] = useState('')
+  const [signal,    setSignal]    = useState('')
   const [sortBy,    setSortBy]    = useState('price_desc')
   const [selected,  setSelected]  = useState<Card | null>(null)
   const [cols,      setCols]      = useState(5)
@@ -60,6 +61,7 @@ export default function CardGrid({ cards, loading, setsMap }: CardGridProps) {
       )
     }
     if (activeSet) r = r.filter(c => String(c.set?.id) === activeSet)
+    if (signal)    r = r.filter(c => (c.prediction?.signal ?? '') === signal)
     const sorters: Record<string, (a: Card, b: Card) => number> = {
       price_desc: (a, b) => (b.price ?? 0) - (a.price ?? 0),
       price_asc:  (a, b) => (a.price ?? 1e9) - (b.price ?? 1e9),
@@ -69,7 +71,7 @@ export default function CardGrid({ cards, loading, setsMap }: CardGridProps) {
       name:       (a, b) => a.card_name.localeCompare(b.card_name),
     }
     return r.sort(sorters[sortBy] ?? sorters.price_desc)
-  }, [cards, query, activeSet, sortBy])
+  }, [cards, query, activeSet, signal, sortBy])
 
   return (
     <div>
@@ -121,6 +123,38 @@ export default function CardGrid({ cards, loading, setsMap }: CardGridProps) {
           </select>
           <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 10, color: 'var(--ink-light)' }}>▾</span>
         </div>
+      </div>
+
+      {/* Signal filter */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+        {([
+          { value: '',            label: 'All Signals' },
+          { value: 'UNDERVALUED', label: 'Undervalued' },
+          { value: 'FAIR VALUE',  label: 'Fair Value'  },
+          { value: 'OVERVALUED',  label: 'Overvalued'  },
+        ] as const).map(b => {
+          const active = signal === b.value
+          const color = b.value === 'UNDERVALUED' ? 'var(--green)'
+            : b.value === 'OVERVALUED' ? 'var(--red)'
+            : active ? 'var(--c1)' : 'var(--ink-mid)'
+          return (
+            <button
+              key={b.value}
+              onClick={() => setSignal(b.value)}
+              style={{
+                padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                background: active
+                  ? (b.value === 'UNDERVALUED' ? 'var(--green)' : b.value === 'OVERVALUED' ? 'var(--red)' : 'var(--ink)')
+                  : 'var(--c1)',
+                color: active ? 'var(--c1)' : color,
+                border: `1px solid ${active
+                  ? (b.value === 'UNDERVALUED' ? 'var(--green)' : b.value === 'OVERVALUED' ? 'var(--red)' : 'var(--ink)')
+                  : 'var(--cborder)'}`,
+                transition: 'all 0.15s',
+              }}
+            >{b.label}</button>
+          )
+        })}
       </div>
 
       <StatsBar cards={filtered} />

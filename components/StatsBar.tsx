@@ -17,21 +17,15 @@ export default function StatsBar({ cards }: { cards: Card[] }) {
   ]
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-      background: 'var(--c1)', border: '1px solid var(--cborder)',
-      borderRadius: 12, overflow: 'hidden', marginBottom: 30,
-      boxShadow: '0 1px 6px rgba(26,18,8,0.05)',
-    }}>
+    <div className="stats-grid">
       {stats.map((s, i) => (
-        <div key={i} style={{
-          padding: '14px 20px',
+        <div key={i} className="stats-cell" style={{
           borderRight: i < 3 ? '1px solid var(--cborder)' : 'none',
         }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)', marginBottom: 5 }}>
             {s.label}
           </div>
-          <div style={{
+          <div className="stats-value" style={{
             fontFamily: s.mono ? 'var(--fm)' : 'var(--fd)',
             fontSize: s.mono ? 18 : 17,
             fontStyle: s.mono ? 'normal' : 'italic',

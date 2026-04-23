@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardSet, SetData } from '@/lib/types'
 import CardItem from './CardItem'
 import CardModal from './CardModal'
@@ -31,7 +31,17 @@ export default function CardGrid({ cards, loading, setsMap }: CardGridProps) {
   const [activeSet, setActiveSet] = useState('')
   const [sortBy,    setSortBy]    = useState('price_desc')
   const [selected,  setSelected]  = useState<Card | null>(null)
-  const [cols]                    = useState(5)
+  const [cols,      setCols]      = useState(5)
+
+  useEffect(() => {
+    function update() {
+      const w = window.innerWidth
+      setCols(w < 480 ? 2 : w < 640 ? 3 : w < 900 ? 4 : 5)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   const sets: CardSet[] = useMemo(() => {
     const m = new Map<number, CardSet>()
@@ -65,7 +75,7 @@ export default function CardGrid({ cards, loading, setsMap }: CardGridProps) {
       {/* Controls row */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 20 }}>
         {/* Search */}
-        <div style={{ flex: '1 1 240px', position: 'relative' }}>
+        <div style={{ flex: '1 1 200px', position: 'relative' }}>
           <svg
             style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.4 }}
             width="14" height="14" viewBox="0 0 14 14" fill="none"

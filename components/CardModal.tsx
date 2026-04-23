@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, SetData, PricePoint, ModelPrediction } from '@/lib/types'
+import { Card, SetData, PricePoint, GradedPoint, ModelPrediction } from '@/lib/types'
 import { fmt, fmtP } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import PriceChart from './PriceChart'
@@ -14,8 +14,10 @@ interface CardModalProps {
 }
 
 export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
-  const [hist,       setHist]       = useState<PricePoint[] | null>(null)
-  const [prediction, setPrediction] = useState<ModelPrediction | null | undefined>(undefined) // undefined = loading
+  const [hist,        setHist]        = useState<PricePoint[] | null>(null)
+  const [gradedHist,  setGradedHist]  = useState<GradedPoint[] | null>(null)
+  const [prediction,  setPrediction]  = useState<ModelPrediction | null | undefined>(undefined)
+  const [demandTip,   setDemandTip]   = useState(false)
 
   useEffect(() => {
     async function fetchPrediction() {
@@ -49,13 +51,32 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
         setHist([])
       }
     }
+
+    async function fetchGradedHistory() {
+      try {
+        const { data } = await supabase
+          .from('card_price_snapshots')
+          .select('snapshot_date, tcgplayer_market_price')
+          .eq('card_id', card.id)
+          .eq('price_source', 'psa10')
+          .order('snapshot_date', { ascending: true })
+        const points = (data ?? [])
+          .filter(d => d.tcgplayer_market_price != null)
+          .map(d => ({ snapshot_date: d.snapshot_date, price: d.tcgplayer_market_price as number })) as GradedPoint[]
+        setGradedHist(points)
+      } catch {
+        setGradedHist([])
+      }
+    }
+
     fetchPrediction()
     fetchHistory()
+    fetchGradedHistory()
 
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
-  }, [card.id, onClose])
+  }, [card.id, card.tcg_id, onClose])
 
   const d = card.demand
   const setInfo = setsMap.get(card.set?.id ?? -1)
@@ -76,7 +97,7 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
       <div className="modal-box">
 
         {/* Header */}
-        <div style={{ padding: '18px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div className="modal-padding" style={{ padding: '18px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)', marginBottom: 4 }}>
               {card.set?.set_name} · Special Illustration Rare
@@ -89,23 +110,24 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
             )}
           </div>
           <button
+            className="modal-close-btn"
             onClick={onClose}
             style={{
-              width: 30, height: 30, borderRadius: 7,
+              width: 30, height: 30, borderRadius: 7, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16, color: 'var(--ink-light)', background: 'var(--c2)', flexShrink: 0,
+              fontSize: 16, color: 'var(--ink-light)', background: 'var(--c2)',
             }}
           >✕</button>
         </div>
 
         {/* Top 2-col grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '168px 1fr', gap: 20, padding: '14px 24px 0' }}>
+        <div className="modal-top-grid modal-padding" style={{ display: 'grid', gridTemplateColumns: '168px 1fr', gap: 20, padding: '14px 24px 0' }}>
 
           {/* Card image */}
-          <div>
+          <div className="modal-img-wrap" style={{ aspectRatio: '2.5/3.5' }}>
             <div style={{
               borderRadius: 10, overflow: 'hidden', background: 'var(--c2)',
-              aspectRatio: '2.5/3.5', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 4px 20px rgba(26,18,8,0.12)',
             }}>
               {card.image_url
@@ -179,7 +201,7 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
                   background: 'var(--c1)', color: 'var(--gold)', border: '1px solid var(--cborder)',
                 }}>XGBoost v8</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 7 }}>
+              <div className="modal-pred-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 7 }}>
                 {(() => {
                   const loading = prediction === undefined
                   const p = prediction
@@ -214,23 +236,18 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
                   ))
                 })()}
               </div>
-              {prediction === null && (
-                <div style={{ marginTop: 9, fontSize: 10, color: 'var(--ink-light)', textAlign: 'center' }}>
-                  Predictions syncing to database — available soon
-                </div>
-              )}
             </div>
           </div>
         </div>
 
         {/* Market data strip */}
-        <div style={{
+        <div className="modal-market-grid modal-padding" style={{
           display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
           margin: '14px 24px 0', borderRadius: 9, overflow: 'hidden',
           border: '1px solid var(--cborder)',
         }}>
           {marketCells.map((item, i) => (
-            <div key={i} style={{
+            <div key={i} className="modal-market-cell" style={{
               padding: '10px 13px', background: 'var(--c1)',
               borderRight: i < 3 ? '1px solid var(--cborder)' : 'none',
             }}>
@@ -247,14 +264,45 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
 
         {/* Demand score */}
         {d?.demand_score != null && (
-          <div style={{
+          <div className="modal-padding" style={{
             margin: '12px 24px 0', padding: '10px 14px',
             background: 'var(--c2)', borderRadius: 8,
             display: 'flex', alignItems: 'center', gap: 14,
           }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 5 }}>
-                Demand Score
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)' }}>
+                  Demand Score
+                </div>
+                {/* Tooltip trigger */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setDemandTip(v => !v)}
+                    style={{
+                      width: 15, height: 15, borderRadius: '50%',
+                      background: 'var(--cborder)', color: 'var(--ink-mid)',
+                      fontSize: 9, fontWeight: 700, lineHeight: 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                    aria-label="About demand score"
+                  >?</button>
+                  {demandTip && (
+                    <div style={{
+                      position: 'absolute', bottom: 20, left: 0,
+                      background: 'var(--ink)', color: 'var(--c1)',
+                      borderRadius: 8, padding: '10px 12px', fontSize: 11,
+                      width: 220, lineHeight: 1.5, zIndex: 50,
+                      boxShadow: '0 8px 24px rgba(26,18,8,0.25)',
+                    }}>
+                      <div style={{ fontWeight: 700, marginBottom: 5 }}>About Demand Score</div>
+                      <div style={{ opacity: 0.85 }}>
+                        A composite 0–10 signal combining Google Trends search interest,
+                        14-day and 30-day price momentum, and competitive usage rates.
+                        Scores ≥7.5 indicate high demand.
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               <DemBar score={d.demand_score} noLabel />
             </div>
@@ -268,12 +316,12 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
         )}
 
         {/* Price history */}
-        <div style={{ padding: '14px 24px 24px' }}>
+        <div className="modal-padding" style={{ padding: '14px 24px 24px' }}>
           <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 16 }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 12 }}>
               Price History
             </div>
-            <PriceChart data={hist} />
+            <PriceChart data={hist} gradedData={gradedHist} showToggle />
           </div>
         </div>
 

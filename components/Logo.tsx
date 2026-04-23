@@ -21,7 +21,7 @@ export default function Logo() {
           Quant
         </span>
       </div>
-      <span style={{
+      <span className="nav-beta" style={{
         fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
         padding: '2px 6px', borderRadius: 4,
         background: 'var(--c3)', color: 'var(--ink-light)', border: '1px solid var(--cborder)',

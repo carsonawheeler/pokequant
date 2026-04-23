@@ -61,3 +61,8 @@ export interface PricePoint {
   snapshot_date: string
   tcgplayer_market_price: number
 }
+
+export interface GradedPoint {
+  snapshot_date: string
+  price: number
+}

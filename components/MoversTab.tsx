@@ -53,12 +53,12 @@ export default function MoversTab({ cards, loading }: MoversTabProps) {
       </div>
 
       {/* Column headers */}
-      <div style={{
+      <div className="movers-head" style={{
         display: 'grid', gridTemplateColumns: '36px 56px 1fr 110px 120px',
         padding: '5px 16px', gap: 14, marginBottom: 5,
         fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)',
       }}>
-        <span /><span /><span>Card</span>
+        <span className="mover-rank-col" /><span /><span>Card</span>
         <span style={{ textAlign: 'right' }}>30d</span>
         <span style={{ textAlign: 'right' }}>Price</span>
       </div>
@@ -69,14 +69,14 @@ export default function MoversTab({ cards, loading }: MoversTabProps) {
           const mom = card.demand!.price_momentum_30d!
           const up  = mom > 0
           return (
-            <div key={card.id} className="mover-row" style={{
+            <div key={card.id} className="mover-row movers-grid" style={{
               background: 'var(--c1)', borderRadius: 10, padding: '10px 16px',
               border: '1px solid var(--cborder)',
               display: 'grid', gridTemplateColumns: '36px 56px 1fr 110px 120px',
               alignItems: 'center', gap: 14,
               boxShadow: '0 1px 4px rgba(26,18,8,0.04)',
             }}>
-              <span style={{ fontSize: 11, fontFamily: 'var(--fm)', color: 'var(--ink-light)' }}>#{i + 1}</span>
+              <span className="mover-rank-col" style={{ fontSize: 11, fontFamily: 'var(--fm)', color: 'var(--ink-light)' }}>#{i + 1}</span>
               <div style={{ width: 56, height: 76 }}>
                 {card.image_url
                   ? <img src={card.image_url} alt={card.card_name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />

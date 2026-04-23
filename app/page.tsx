@@ -11,10 +11,10 @@ import MoversTab from '@/components/MoversTab'
 
 type TabId = 'cards' | 'sets' | 'movers'
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'cards',  label: 'Cards' },
-  { id: 'sets',   label: 'Sets' },
-  { id: 'movers', label: 'Movers' },
+const TABS: { id: TabId; label: string; icon: string }[] = [
+  { id: 'cards',  label: 'Cards',  icon: '⊞' },
+  { id: 'sets',   label: 'Sets',   icon: '◫' },
+  { id: 'movers', label: 'Movers', icon: '↑↓' },
 ]
 
 const TITLES: Record<TabId, string> = {
@@ -185,7 +185,8 @@ export default function Home() {
                   color: tab === t.id ? 'var(--c1)' : 'var(--ink-mid)',
                 }}
               >
-                {t.label}
+                <span className="tab-label">{t.label}</span>
+                <span className="tab-icon">{t.icon}</span>
               </button>
             ))}
           </nav>
@@ -195,20 +196,20 @@ export default function Home() {
             {!loading && !error && (
               <>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
-                <span style={{ fontSize: 11, color: 'var(--ink-light)', fontFamily: 'var(--fm)' }}>
+                <span className="nav-live-text" style={{ fontSize: 11, color: 'var(--ink-light)', fontFamily: 'var(--fm)' }}>
                   Live · {cards.length} SIRs
                 </span>
               </>
             )}
-            {loading && <span style={{ fontSize: 11, color: 'var(--ink-light)' }}>Loading…</span>}
+            {loading && <span className="nav-live-text" style={{ fontSize: 11, color: 'var(--ink-light)' }}>Loading…</span>}
           </div>
         </div>
       </header>
 
       {/* ── Main ── */}
-      <main style={{ maxWidth: 1320, margin: '0 auto', padding: '34px 28px 80px' }}>
+      <main className="main-pad" style={{ maxWidth: 1320, margin: '0 auto', padding: '34px 28px 80px' }}>
         <div style={{ marginBottom: 26 }}>
-          <h1 style={{ fontFamily: 'var(--fd)', fontSize: 32, color: 'var(--ink)', marginBottom: 5, letterSpacing: '-0.01em' }}>
+          <h1 className="page-h1" style={{ fontFamily: 'var(--fd)', fontSize: 32, color: 'var(--ink)', marginBottom: 5, letterSpacing: '-0.01em' }}>
             {TITLES[tab]}
           </h1>
           <p style={{ fontSize: 13, color: 'var(--ink-light)' }}>{SUBTITLES[tab]}</p>

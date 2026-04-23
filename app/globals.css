@@ -27,6 +27,7 @@ body {
   font-family: var(--fs);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 button {
@@ -117,3 +118,129 @@ button {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--c2); }
 ::-webkit-scrollbar-thumb { background: var(--cborder); border-radius: 3px; }
+
+/* ────────────────────────────────────────────────────────
+   MOBILE RESPONSIVE
+──────────────────────────────────────────────────────── */
+
+/* Nav tab labels / icons */
+.tab-icon  { display: none; }
+.tab-label { display: inline; }
+
+@media (max-width: 480px) {
+  .tab-label  { display: none !important; }
+  .tab-icon   { display: inline !important; }
+  .nav-beta   { display: none !important; }
+  .nav-live-text { display: none !important; }
+  .nav-separator { display: none !important; }
+}
+
+/* StatsBar: 4-col → 2×2 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--c1);
+  border: 1px solid var(--cborder);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 6px rgba(26,18,8,0.05);
+}
+.stats-cell {
+  padding: 14px 20px;
+}
+@media (max-width: 640px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .stats-cell:nth-child(2) { border-right: none !important; }
+  .stats-cell:nth-child(3) {
+    border-right: 1px solid var(--cborder) !important;
+    border-top: 1px solid var(--cborder) !important;
+  }
+  .stats-cell:nth-child(4) { border-top: 1px solid var(--cborder) !important; }
+  .stats-value { font-size: 15px !important; }
+}
+
+/* Card grid: auto → 2 cols (driven by JS state, this is just for reference) */
+
+/* Modal: stacked on mobile */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .modal-box {
+    border-radius: 20px 20px 0 0 !important;
+    max-width: 100% !important;
+    max-height: 95vh !important;
+  }
+  .modal-top-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .modal-img-wrap {
+    aspect-ratio: auto !important;
+    max-height: 280px !important;
+  }
+  .modal-img-wrap img {
+    max-height: 280px;
+    width: auto !important;
+    margin: 0 auto;
+    display: block;
+  }
+  .modal-market-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .modal-market-cell:nth-child(2) { border-right: none !important; }
+  .modal-market-cell:nth-child(3) { border-top: 1px solid var(--cborder) !important; border-right: 1px solid var(--cborder) !important; }
+  .modal-market-cell:nth-child(4) { border-top: 1px solid var(--cborder) !important; }
+  .modal-pred-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .modal-close-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+  }
+  .modal-padding { padding-left: 16px !important; padding-right: 16px !important; }
+}
+
+/* Sets grid: 3 → 2 cols */
+.sets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+@media (max-width: 640px) {
+  .sets-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Leaderboard: hide box col on mobile */
+.lb-box-header { }
+.lb-box-cell   { }
+.lb-badge-cell { }
+@media (max-width: 640px) {
+  .lb-box-header { display: none !important; }
+  .lb-box-cell   { display: none !important; }
+  .lb-row        { grid-template-columns: 40px 40px 1fr 100px 90px 60px !important; }
+  .lb-head       { grid-template-columns: 40px 40px 1fr 100px 90px 60px !important; }
+}
+
+/* Movers: hide rank on mobile */
+.mover-rank-col { }
+@media (max-width: 640px) {
+  .mover-rank-col { display: none !important; }
+  .movers-grid    { grid-template-columns: 56px 1fr auto auto !important; }
+  .movers-head    { grid-template-columns: 56px 1fr auto auto !important; }
+}
+
+/* Price chart height */
+.chart-svg { height: 160px; width: 100%; }
+@media (max-width: 640px) {
+  .chart-svg { height: 130px !important; }
+  .chart-btn  { padding: 2px 7px !important; font-size: 10px !important; }
+}
+
+/* Main padding mobile */
+@media (max-width: 640px) {
+  .main-pad { padding: 20px 16px 60px !important; }
+  .page-h1  { font-size: 24px !important; }
+}

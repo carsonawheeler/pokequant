@@ -95,7 +95,7 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
 
       {/* GRID VIEW */}
       {view === 'grid' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+        <div className="sets-grid">
           {filtered.map(s => (
             <div key={s.id} className="card-item" style={{
               background: 'var(--c1)', borderRadius: 12,
@@ -161,7 +161,7 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
       {/* LEADERBOARD VIEW */}
       {view === 'leaderboard' && (
         <div>
-          <div style={{
+          <div className="lb-head" style={{
             display: 'grid',
             gridTemplateColumns: '40px 48px 1fr 130px 120px 120px 72px',
             padding: '6px 16px', gap: 14, marginBottom: 6,
@@ -169,14 +169,14 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
           }}>
             <span>#</span><span></span><span>Set</span>
             <span style={{ textAlign: 'right' }}>Median SIR</span>
-            <span style={{ textAlign: 'right' }}>Pack</span>
-            <span style={{ textAlign: 'right' }}>Box</span>
+            <span className="lb-box-header" style={{ textAlign: 'right' }}>Pack</span>
+            <span className="lb-box-header" style={{ textAlign: 'right' }}>Box</span>
             <span />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {filtered.map((s, i) => (
-              <div key={s.id} style={{
+              <div key={s.id} className="lb-row" style={{
                 background: 'var(--c1)', borderRadius: 10, padding: '11px 16px',
                 border: '1px solid var(--cborder)',
                 display: 'grid',
@@ -203,9 +203,9 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.median)}</div>
-                <div style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: 'var(--ink-mid)' }}>{fmt(s.packPrice)}</div>
-                <div style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: 'var(--ink-mid)' }}>{fmt(s.boxPrice)}</div>
-                <div style={{ textAlign: 'right' }}>
+                <div className="lb-box-cell" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: 'var(--ink-mid)' }}>{fmt(s.packPrice)}</div>
+                <div className="lb-box-cell" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: 'var(--ink-mid)' }}>{fmt(s.boxPrice)}</div>
+                <div className="lb-badge-cell" style={{ textAlign: 'right' }}>
                   {s.is_special_set && (
                     <span style={{
                       fontSize: 9, padding: '2px 7px', borderRadius: 20,

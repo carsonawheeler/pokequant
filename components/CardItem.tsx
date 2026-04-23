@@ -77,7 +77,8 @@ interface CardItemProps {
 
 export default function CardItem({ card, onClick, cols, showImg = true }: CardItemProps) {
   const d = card.demand
-  const imgH = cols === 5 ? 210 : cols === 4 ? 240 : 280
+  // Mobile (cols=2) gets shorter images
+  const imgH = cols <= 2 ? 160 : cols === 3 ? 200 : cols === 4 ? 240 : 210
 
   return (
     <div

@@ -4,7 +4,6 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Card, SetData, DemandSignal } from '@/lib/types'
 import Logo from '@/components/Logo'
-import StatsBar from '@/components/StatsBar'
 import CardGrid from '@/components/CardGrid'
 import SetsTab from '@/components/SetsTab'
 import MoversTab from '@/components/MoversTab'
@@ -214,8 +213,6 @@ export default function Home() {
           </h1>
           <p style={{ fontSize: 13, color: 'var(--ink-light)' }}>{SUBTITLES[tab]}</p>
         </div>
-
-        {tab === 'cards' && !loading && cards.length > 0 && <StatsBar cards={cards} />}
 
         {error && (
           <div style={{ padding: '20px', background: 'var(--red-bg)', borderRadius: 10, color: 'var(--red)', fontSize: 13, border: `1px solid var(--red)` }}>

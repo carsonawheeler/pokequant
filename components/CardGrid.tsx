@@ -5,6 +5,7 @@ import { Card, CardSet, SetData } from '@/lib/types'
 import CardItem from './CardItem'
 import CardModal from './CardModal'
 import SetSearch from './SetSearch'
+import StatsBar from './StatsBar'
 
 function CardSkel() {
   return (
@@ -121,6 +122,8 @@ export default function CardGrid({ cards, loading, setsMap }: CardGridProps) {
           <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 10, color: 'var(--ink-light)' }}>▾</span>
         </div>
       </div>
+
+      <StatsBar cards={filtered} />
 
       {/* Result count */}
       <div style={{ fontSize: 12, color: 'var(--ink-light)', marginBottom: 16 }}>

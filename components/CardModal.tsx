@@ -41,8 +41,9 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
           .from('card_price_snapshots')
           .select('snapshot_date, tcgplayer_market_price')
           .eq('card_id', card.id)
-          .neq('price_source', 'ppt_historical')
+          .not('tcgplayer_market_price', 'is', null)
           .order('snapshot_date', { ascending: true })
+          .limit(500)
         const points = (data ?? []).filter(
           d => d.tcgplayer_market_price != null
         ) as PricePoint[]

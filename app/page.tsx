@@ -53,7 +53,7 @@ export default function Home() {
             `)
             .eq('rarity_group', 'SIR')
             .order('card_name')
-            .limit(400),
+            .limit(600),
 
           supabase
             .from('sets')
@@ -79,7 +79,7 @@ export default function Home() {
           .from('card_price_snapshots')
           .select('card_id, tcgplayer_market_price, snapshot_date, price_source')
           .in('card_id', svIds)
-          .neq('price_source', 'ppt_historical')
+          .not('tcgplayer_market_price', 'is', null)
           .order('snapshot_date', { ascending: false })
           .limit(svIds.length * 4)
 

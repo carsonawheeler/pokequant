@@ -211,16 +211,22 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
                     : p?.signal ? 'var(--ink)'
                     : 'var(--cborder)'
 
-                  const fairValue = loading ? '…' : p?.predicted_price != null ? fmt(p.predicted_price) : '—'
-                  const ciRange   = loading ? '…' : (p?.ci_lower_90 != null && p?.ci_upper_90 != null)
-                    ? `${fmt(p.ci_lower_90)} – ${fmt(p.ci_upper_90)}`
+                  const fairValue  = loading ? '…' : p?.predicted_price != null ? fmt(p.predicted_price) : '—'
+                  const confValue  = loading ? '…'
+                    : p?.prediction_confidence === 'HIGH'   ? 'High'
+                    : p?.prediction_confidence === 'MEDIUM' ? 'Fair'
+                    : p?.prediction_confidence === 'LOW'    ? 'Low'
                     : '—'
-                  const signal    = loading ? '…' : p?.signal ?? '—'
+                  const confColor  = p?.prediction_confidence === 'HIGH'   ? 'var(--green)'
+                    : p?.prediction_confidence === 'MEDIUM' ? 'var(--gold)'
+                    : p?.prediction_confidence === 'LOW'    ? 'var(--ink-light)'
+                    : 'var(--cborder)'
+                  const signal     = loading ? '…' : p?.signal ?? '—'
 
                   return [
-                    { title: 'Fair Value',   value: fairValue,  valueColor: 'var(--ink)',  desc: "Model's estimated price" },
-                    { title: '90% CI Range', value: ciRange,    valueColor: 'var(--ink)',  desc: 'Price band model is 90% confident in' },
-                    { title: 'Signal',       value: signal,     valueColor: signalColor,   desc: 'Under/fair/overvalued vs model' },
+                    { title: 'Fair Value',  value: fairValue,  valueColor: 'var(--ink)', desc: "Model's estimated price" },
+                    { title: 'Confidence',  value: confValue,  valueColor: confColor,    desc: 'Prediction reliability' },
+                    { title: 'Signal',      value: signal,     valueColor: signalColor,  desc: 'Under/fair/overvalued vs model' },
                   ].map(cell => (
                     <div key={cell.title} style={{ background: 'var(--c1)', borderRadius: 7, padding: '8px 7px', textAlign: 'center' }}>
                       <div style={{

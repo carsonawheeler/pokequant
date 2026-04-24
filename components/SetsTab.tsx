@@ -16,6 +16,7 @@ interface SetRow extends SetData {
   median:   number | null
   packPrice: number | null
   boxPrice:  number | null
+  etbPrice:  number | null
   logoUrl:   string
 }
 
@@ -67,10 +68,11 @@ function SetModal({ setRow, cards, onClose }: {
     s === 'UNDERVALUED' ? 'var(--green)' : s === 'OVERVALUED' ? 'var(--red)' : 'var(--ink-mid)'
 
   const dataCells = [
-    { label: 'Pack Price',  value: setRow.packPrice ? fmt(setRow.packPrice) : null },
-    { label: 'Box Price',   value: setRow.boxPrice  ? fmt(setRow.boxPrice)  : null },
-    { label: 'Median SIR',  value: setRow.median    ? fmt(setRow.median)    : null },
-    { label: 'Total Value', value: totalValue > 0   ? fmt(totalValue)       : null },
+    { label: 'ETB Price',   value: setRow.etbPrice  ? fmt(setRow.etbPrice)  : null, sub: setRow.is_special_set ? 'Primary sealed product' : undefined, highlight: !!setRow.etbPrice && !!setRow.is_special_set },
+    { label: 'Box Price',   value: setRow.boxPrice  ? fmt(setRow.boxPrice)  : null, sub: undefined, highlight: false },
+    { label: 'Pack Price',  value: setRow.packPrice ? fmt(setRow.packPrice) : null, sub: undefined, highlight: false },
+    { label: 'Median SIR',  value: setRow.median    ? fmt(setRow.median)    : null, sub: undefined, highlight: false },
+    { label: 'Total Value', value: totalValue > 0   ? fmt(totalValue)       : null, sub: undefined, highlight: false },
   ]
 
   return (
@@ -122,21 +124,24 @@ function SetModal({ setRow, cards, onClose }: {
 
         {/* Data strip */}
         <div className="modal-market-grid modal-padding" style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
           margin: '16px 24px 0', borderRadius: 9, overflow: 'hidden',
           border: '1px solid var(--cborder)',
         }}>
           {dataCells.map((cell, i) => (
             <div key={i} className="modal-market-cell" style={{
               padding: '10px 13px', background: 'var(--c1)',
-              borderRight: i < 3 ? '1px solid var(--cborder)' : 'none',
+              borderRight: i < 4 ? '1px solid var(--cborder)' : 'none',
             }}>
               <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-light)', marginBottom: 4 }}>
                 {cell.label}
               </div>
-              <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: cell.value ? 'var(--ink)' : 'var(--cborder)' }}>
+              <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: cell.value ? (cell.highlight ? 'var(--gold)' : 'var(--ink)') : 'var(--cborder)' }}>
                 {cell.value ?? '—'}
               </div>
+              {cell.sub && (
+                <div style={{ fontSize: 9, color: 'var(--gold)', marginTop: 2 }}>{cell.sub}</div>
+              )}
             </div>
           ))}
         </div>
@@ -234,6 +239,7 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
       median:    medMap[s.id] ?? null,
       packPrice: s.set_price_snapshots?.[0]?.pack_market_price ?? null,
       boxPrice:  s.set_price_snapshots?.[0]?.booster_box_market_price ?? null,
+      etbPrice:  s.set_price_snapshots?.[0]?.etb_market_price ?? null,
       logoUrl:   `https://images.pokemontcg.io/${s.set_code}/logo.png`,
     }))
   }, [cards, setsData])
@@ -362,8 +368,22 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
                 </div>
                 <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 9, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Median SIR</div>
-                    <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.median)}</div>
+                    {s.etbPrice != null ? (
+                      <>
+                        <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>ETB Price</div>
+                        <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: s.is_special_set ? 'var(--gold)' : 'var(--ink)' }}>{fmt(s.etbPrice)}</div>
+                      </>
+                    ) : s.boxPrice != null ? (
+                      <>
+                        <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Box Price</div>
+                        <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.boxPrice)}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Median SIR</div>
+                        <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.median)}</div>
+                      </>
+                    )}
                   </div>
                   <div>
                     <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Pack Price</div>
@@ -381,7 +401,7 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
         <div>
           <div className="lb-head" style={{
             display: 'grid',
-            gridTemplateColumns: '40px 48px 1fr 130px 120px 120px 72px',
+            gridTemplateColumns: '40px 48px 1fr 130px 110px 110px 110px 72px',
             padding: '6px 16px', gap: 14, marginBottom: 6,
             fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)',
           }}>
@@ -389,6 +409,7 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
             <span style={{ textAlign: 'right' }}>Median SIR</span>
             <span className="lb-box-header" style={{ textAlign: 'right' }}>Pack</span>
             <span className="lb-box-header" style={{ textAlign: 'right' }}>Box</span>
+            <span className="lb-box-header" style={{ textAlign: 'right' }}>ETB</span>
             <span />
           </div>
 
@@ -402,7 +423,7 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
                   background: 'var(--c1)', borderRadius: 10, padding: '11px 16px',
                   border: '1px solid var(--cborder)',
                   display: 'grid',
-                  gridTemplateColumns: '40px 48px 1fr 130px 120px 120px 72px',
+                  gridTemplateColumns: '40px 48px 1fr 130px 110px 110px 110px 72px',
                   alignItems: 'center', gap: 14,
                   boxShadow: '0 1px 4px rgba(26,18,8,0.04)',
                   cursor: 'pointer',
@@ -429,6 +450,7 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
                 <div style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.median)}</div>
                 <div className="lb-box-cell" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: 'var(--ink-mid)' }}>{fmt(s.packPrice)}</div>
                 <div className="lb-box-cell" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: 'var(--ink-mid)' }}>{fmt(s.boxPrice)}</div>
+                <div className="lb-box-cell" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: s.etbPrice && s.is_special_set ? 'var(--gold)' : 'var(--ink-mid)' }}>{fmt(s.etbPrice)}</div>
                 <div className="lb-badge-cell" style={{ textAlign: 'right' }}>
                   {s.is_special_set && (
                     <span style={{

@@ -59,7 +59,7 @@ export default function Home() {
             .from('sets')
             .select(`
               id, set_name, set_code, era, sir_count, is_special_set,
-              set_price_snapshots(pack_market_price, booster_box_market_price, snapshot_date)
+              set_price_snapshots(pack_market_price, booster_box_market_price, etb_market_price, snapshot_date)
             `)
             .eq('era', 'SV')
             .order('id'),

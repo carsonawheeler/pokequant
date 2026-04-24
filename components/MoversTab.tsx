@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Card, CardSet } from '@/lib/types'
 import { fmt } from '@/lib/utils'
+import { SearchSchema, SetFilterSchema, DirSchema, safeValidate } from '@/lib/validation'
 import SetSearch from './SetSearch'
 
 interface MoversTabProps {
@@ -22,11 +23,18 @@ export default function MoversTab({ cards, loading }: MoversTabProps) {
   }, [cards])
 
   const movers = useMemo(() => {
+    // OWASP: Input validation — reject unexpected shapes before they reach the DB query.
+    // Inputs filter an in-memory array; validation caps length, constrains character sets,
+    // and locks direction to the known enum. Invalid inputs fall back to safe defaults.
+    const safeQuery = safeValidate(SearchSchema, { q: query.trim() || undefined }, {}).q ?? ''
+    const safeSet   = safeValidate(SetFilterSchema, { setId: activeSet || undefined }, {}).setId ?? ''
+    const safeDir   = safeValidate(DirSchema, dir, 'all' as const)
+
     let eligible = cards.filter(c => c.demand?.price_momentum_30d != null && c.price != null)
 
     // text search
-    if (query.trim()) {
-      const q = query.trim().toLowerCase()
+    if (safeQuery) {
+      const q = safeQuery.toLowerCase()
       eligible = eligible.filter(c =>
         c.card_name?.toLowerCase().includes(q) ||
         (c.character_name ?? '').toLowerCase().includes(q)
@@ -34,15 +42,15 @@ export default function MoversTab({ cards, loading }: MoversTabProps) {
     }
 
     // set filter
-    if (activeSet) eligible = eligible.filter(c => String(c.set?.id) === activeSet)
+    if (safeSet) eligible = eligible.filter(c => String(c.set?.id) === safeSet)
 
-    if (dir === 'up') {
+    if (safeDir === 'up') {
       return eligible
         .filter(c => (c.demand!.price_momentum_30d ?? 0) > 0)
         .sort((a, b) => b.demand!.price_momentum_30d! - a.demand!.price_momentum_30d!)
         .slice(0, 100)
     }
-    if (dir === 'down') {
+    if (safeDir === 'down') {
       return eligible
         .filter(c => (c.demand!.price_momentum_30d ?? 0) < 0)
         .sort((a, b) => a.demand!.price_momentum_30d! - b.demand!.price_momentum_30d!)

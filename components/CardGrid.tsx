@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { Card, CardSet, SetData } from '@/lib/types'
+import { SearchSchema, SetFilterSchema, SortSchema, SignalSchema, safeValidate } from '@/lib/validation'
 import CardItem from './CardItem'
 import CardModal from './CardModal'
 import SetSearch from './SetSearch'
@@ -52,16 +53,24 @@ export default function CardGrid({ cards, loading, setsMap }: CardGridProps) {
   }, [cards])
 
   const filtered = useMemo(() => {
+    // OWASP: Input validation — reject unexpected shapes before they reach the DB query.
+    // Inputs are used for in-memory filtering; validation caps length and constrains
+    // to known-good character sets / enum values, failing safe to empty/default.
+    const safeQuery  = safeValidate(SearchSchema, { q: query.trim() || undefined }, {}).q ?? ''
+    const safeSet    = safeValidate(SetFilterSchema, { setId: activeSet || undefined }, {}).setId ?? ''
+    const safeSignal = safeValidate(SignalSchema, signal, '' as const)
+    const safeSort   = safeValidate(SortSchema, sortBy, 'price_desc' as const)
+
     let r = [...cards]
-    if (query.trim()) {
-      const q = query.trim().toLowerCase()
+    if (safeQuery) {
+      const q = safeQuery.toLowerCase()
       r = r.filter(c =>
         c.card_name?.toLowerCase().includes(q) ||
         (c.character_name ?? '').toLowerCase().includes(q)
       )
     }
-    if (activeSet) r = r.filter(c => String(c.set?.id) === activeSet)
-    if (signal)    r = r.filter(c => (c.prediction?.signal ?? '') === signal)
+    if (safeSet)    r = r.filter(c => String(c.set?.id) === safeSet)
+    if (safeSignal) r = r.filter(c => (c.prediction?.signal ?? '') === safeSignal)
     const sorters: Record<string, (a: Card, b: Card) => number> = {
       price_desc: (a, b) => (b.price ?? 0) - (a.price ?? 0),
       price_asc:  (a, b) => (a.price ?? 1e9) - (b.price ?? 1e9),
@@ -70,7 +79,7 @@ export default function CardGrid({ cards, loading, setsMap }: CardGridProps) {
       demand:     (a, b) => (b.demand?.demand_score ?? 0) - (a.demand?.demand_score ?? 0),
       name:       (a, b) => a.card_name.localeCompare(b.card_name),
     }
-    return r.sort(sorters[sortBy] ?? sorters.price_desc)
+    return r.sort(sorters[safeSort])
   }, [cards, query, activeSet, signal, sortBy])
 
   return (

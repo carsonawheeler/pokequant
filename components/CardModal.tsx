@@ -121,11 +121,22 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
     fetchSalesHistory()
     fetchEbayData()
 
+    // Lock background scroll — use position:fixed trick for iOS Safari
+    // (overflow:hidden alone doesn't prevent scroll on iOS)
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
     document.body.style.overflow = 'hidden'
+
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', esc)
     return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
       document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
       window.removeEventListener('keydown', esc)
     }
   }, [card.id, card.tcg_id, onClose])

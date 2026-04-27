@@ -5,6 +5,9 @@ import { Card, SetData, PricePoint, GradedPoint, ModelPrediction } from '@/lib/t
 import { fmt, fmtP } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import PriceChart from './PriceChart'
+import SalesChart, { SalesPoint } from './SalesChart'
+import EbayChart, { EbayPoint } from './EbayChart'
+import GradingRoi, { EbayRoi } from './GradingRoi'
 import { MomBadge, DemBar } from './CardItem'
 
 interface CardModalProps {
@@ -16,7 +19,10 @@ interface CardModalProps {
 export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
   const [hist,        setHist]        = useState<PricePoint[] | null>(null)
   const [gradedHist,  setGradedHist]  = useState<GradedPoint[] | null>(null)
+  const [salesHist,   setSalesHist]   = useState<SalesPoint[] | null>(null)
   const [prediction,  setPrediction]  = useState<ModelPrediction | null | undefined>(undefined)
+  const [ebayHist,    setEbayHist]    = useState<EbayPoint[] | null>(null)
+  const [ebayRoi,     setEbayRoi]     = useState<EbayRoi | null | undefined>(undefined)
   const [demandTip,   setDemandTip]   = useState(false)
 
   useEffect(() => {
@@ -70,9 +76,50 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
       }
     }
 
+    async function fetchSalesHistory() {
+      if (!card.tcg_id) { setSalesHist([]); return }
+      try {
+        const { data } = await supabase
+          .from('card_sales_snapshots')
+          .select('sale_date, volume, market_price')
+          .eq('card_id', card.tcg_id)
+          .order('sale_date', { ascending: true })
+          .limit(30)
+        setSalesHist((data ?? []) as SalesPoint[])
+      } catch {
+        setSalesHist([])
+      }
+    }
+
+    async function fetchEbayData() {
+      if (!card.tcg_id) { setEbayHist([]); setEbayRoi(null); return }
+      try {
+        const [histRes, roiRes] = await Promise.all([
+          supabase
+            .from('card_ebay_snapshots')
+            .select('snapshot_date, ebay_raw_avg_price, ebay_psa9_smart_price, ebay_psa10_smart_price, ebay_psa10_confidence')
+            .eq('card_id', card.tcg_id)
+            .order('snapshot_date', { ascending: true }),
+          supabase
+            .from('card_ebay_snapshots')
+            .select('ebay_raw_avg_price, ebay_psa9_smart_price, ebay_psa10_smart_price, ebay_psa10_7day_market, grading_roi_psa9, grading_roi_psa10, ebay_psa10_confidence, ebay_psa10_sales_count')
+            .eq('card_id', card.tcg_id)
+            .order('snapshot_date', { ascending: false })
+            .limit(1),
+        ])
+        setEbayHist((histRes.data ?? []) as EbayPoint[])
+        setEbayRoi((roiRes.data && roiRes.data.length > 0) ? roiRes.data[0] as EbayRoi : null)
+      } catch {
+        setEbayHist([])
+        setEbayRoi(null)
+      }
+    }
+
     fetchPrediction()
     fetchHistory()
     fetchGradedHistory()
+    fetchSalesHistory()
+    fetchEbayData()
 
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', esc)
@@ -86,8 +133,8 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
   const marketCells = [
     { label: 'Pack Price',     value: packPrice ? fmt(packPrice) : null,                               sub: 'Secondary market' },
     { label: 'Set Median SIR', value: card.set_median_sir_price ? fmt(card.set_median_sir_price) : null, sub: card.set?.set_name ?? '' },
-    { label: 'eBay Avg Sale',  value: null,                                                            sub: '7-day rolling · soon' },
-    { label: 'PSA 10 ROI',     value: null,                                                            sub: 'Raw → gem rate · soon' },
+    { label: 'eBay Avg Sale',  value: ebayRoi?.ebay_raw_avg_price != null ? fmt(ebayRoi.ebay_raw_avg_price) : null,           sub: '7-day rolling avg' },
+    { label: 'PSA 10 ROI',    value: ebayRoi?.grading_roi_psa10  != null ? `${ebayRoi.grading_roi_psa10.toFixed(1)}×` : null, sub: 'Raw → PSA 10' },
   ]
 
   return (
@@ -323,12 +370,42 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
         )}
 
         {/* Price history */}
-        <div className="modal-padding" style={{ padding: '14px 24px 24px' }}>
+        <div className="modal-padding" style={{ padding: '14px 24px 0' }}>
           <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 16 }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 12 }}>
               Price History
             </div>
             <PriceChart data={hist} gradedData={gradedHist} showToggle />
+          </div>
+        </div>
+
+        {/* Sales volume chart */}
+        <div className="modal-padding" style={{ padding: '14px 24px 0' }}>
+          <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 16 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 12 }}>
+              TCGPlayer Daily Sales Volume
+            </div>
+            <SalesChart data={salesHist} />
+          </div>
+        </div>
+
+        {/* eBay sold prices by grade */}
+        <div className="modal-padding" style={{ padding: '14px 24px 0' }}>
+          <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 16 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 12 }}>
+              eBay Sold Prices by Grade
+            </div>
+            <EbayChart data={ebayHist} />
+          </div>
+        </div>
+
+        {/* Grading ROI */}
+        <div className="modal-padding" style={{ padding: '14px 24px 24px' }}>
+          <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 16 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 12 }}>
+              Grading ROI
+            </div>
+            <GradingRoi data={ebayRoi} />
           </div>
         </div>
 

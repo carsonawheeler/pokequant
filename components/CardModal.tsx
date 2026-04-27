@@ -6,7 +6,7 @@ import { fmt, fmtP } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import PriceChart from './PriceChart'
 import SalesChart, { SalesPoint } from './SalesChart'
-import EbayChart, { EbayPoint } from './EbayChart'
+import { EbayPoint } from './EbayChart'
 import GradingRoi, { EbayRoi } from './GradingRoi'
 import { MomBadge, DemBar } from './CardItem'
 
@@ -392,7 +392,7 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 12 }}>
               Price History
             </div>
-            <PriceChart data={hist} gradedData={gradedHist} showToggle />
+            <PriceChart data={hist} gradedData={gradedHist} ebayData={ebayHist} showToggle />
           </div>
         </div>
 
@@ -403,16 +403,6 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
               TCGPlayer Daily Sales Volume
             </div>
             <SalesChart data={salesHist} />
-          </div>
-        </div>
-
-        {/* eBay sold prices by grade */}
-        <div className="modal-padding" style={{ padding: '14px 24px 0' }}>
-          <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 16 }}>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 12 }}>
-              eBay Sold Prices by Grade
-            </div>
-            <EbayChart data={ebayHist} />
           </div>
         </div>
 

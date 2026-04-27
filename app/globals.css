@@ -103,6 +103,7 @@ button {
   max-width: 760px;
   max-height: 92vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: 0 40px 100px rgba(26, 18, 8, 0.3);
   animation: scaleIn 0.22s ease;
 }

@@ -121,9 +121,13 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
     fetchSalesHistory()
     fetchEbayData()
 
+    document.body.style.overflow = 'hidden'
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', esc)
-    return () => window.removeEventListener('keydown', esc)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', esc)
+    }
   }, [card.id, card.tcg_id, onClose])
 
   const d = card.demand

@@ -24,6 +24,7 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
   const [ebayHist,    setEbayHist]    = useState<EbayPoint[] | null>(null)
   const [ebayRoi,     setEbayRoi]     = useState<EbayRoi | null | undefined>(undefined)
   const [demandTip,   setDemandTip]   = useState(false)
+  const [roiTip,      setRoiTip]      = useState(false)
 
   // Body scroll lock — isolated effect with no deps so it runs once on mount
   // and cleans up on unmount, regardless of onClose reference changes.
@@ -409,8 +410,42 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
         {/* Grading ROI */}
         <div className="modal-padding" style={{ padding: '14px 24px 24px' }}>
           <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 16 }}>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 12 }}>
-              Grading ROI
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)' }}>
+                Grading ROI
+              </div>
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setRoiTip(v => !v)}
+                  onBlur={() => setRoiTip(false)}
+                  style={{
+                    width: 14, height: 14, borderRadius: '50%',
+                    background: 'var(--cborder)', color: 'var(--ink-mid)',
+                    fontSize: 8, fontWeight: 700, lineHeight: 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                  aria-label="About Grading ROI"
+                >ⓘ</button>
+                {roiTip && (
+                  <div style={{
+                    position: 'absolute', bottom: 20, left: 0,
+                    background: 'var(--ink)', color: 'var(--c1)',
+                    borderRadius: 8, padding: '10px 12px', fontSize: 11,
+                    width: 240, lineHeight: 1.5, zIndex: 50,
+                    boxShadow: '0 8px 24px rgba(26,18,8,0.25)',
+                  }}>
+                    <div style={{ fontWeight: 700, marginBottom: 5 }}>About Grading ROI</div>
+                    <div style={{ opacity: 0.85 }}>
+                      PSA 10 ROI shows how much more a PSA 10 graded copy sells for vs the raw ungraded price on eBay.
+                      A 3.0× ROI means a card worth $100 raw would sell for ~$300 as a PSA 10, before grading fees (~$25–50).
+                      Above 2.0× is generally worth grading.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--ink-light)', marginBottom: 12, lineHeight: 1.4 }}>
+              PSA 10 smart price ÷ raw eBay price · Source: eBay sold listings
             </div>
             <GradingRoi data={ebayRoi} />
           </div>

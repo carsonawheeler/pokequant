@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { fmt } from '@/lib/utils'
 import { EbayPoint } from './EbayChart'
 
 export interface SalesPoint {
@@ -26,8 +25,6 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
     x: number
     date: string
     volume: number | null
-    price: number | null
-    ebayVol?: number | null
   } | null>(null)
   const [volTab, setVolTab] = useState<VolTab>('tcg')
   const svgRef = useRef<SVGSVGElement>(null)
@@ -53,56 +50,29 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
   // ── eBay PSA10 vol series ─────────────────────────────────────────────────
   const ebayVolSeries = (ebayVolData ?? [])
     .filter(d => d.ebay_psa10_daily_volume_7day != null)
-    .map(d => ({ date: d.snapshot_date, vol: d.ebay_psa10_daily_volume_7day!, market: d.ebay_psa10_7day_market ?? null }))
+    .map(d => ({ date: d.snapshot_date, vol: d.ebay_psa10_daily_volume_7day! }))
   const hasEbayVol = ebayVolSeries.length > 0
 
   // ── Active series ─────────────────────────────────────────────────────────
   const isEbayActive = volTab === 'ebay_psa10' && hasEbayVol
 
-  const activeData: { date: string; volume: number; price: number | null }[] = isEbayActive
-    ? ebayVolSeries.map(d => ({ date: d.date, volume: d.vol, price: d.market }))
-    : data.map(d => ({ date: d.sale_date, volume: d.volume ?? 0, price: d.market_price }))
+  const activeData: { date: string; volume: number }[] = isEbayActive
+    ? ebayVolSeries.map(d => ({ date: d.date, volume: d.vol }))
+    : data.map(d => ({ date: d.sale_date, volume: d.volume ?? 0 }))
 
   // ── Derived geometry ──────────────────────────────────────────────────────
 
   const n    = activeData.length
   const barW = (W - PX * 2) / Math.max(n, 1)
 
-  const volumes     = activeData.map(d => d.volume)
-  const validPrices = activeData.map(d => d.price).filter((p): p is number => p != null)
+  const volumes = activeData.map(d => d.volume)
+  const maxVol  = Math.max(...volumes, 1)
 
-  const maxVol = Math.max(...volumes, 1)
-  const mnP    = validPrices.length ? Math.min(...validPrices) : 0
-  const mxP    = validPrices.length ? Math.max(...validPrices) : 1
-  const rngP   = mxP - mnP || 1
+  const tx   = (i: number) => PX + barW * i + barW / 2
+  const barH = (v: number) => (v / maxVol) * (H - PY * 2)
 
-  const tx       = (i: number) => PX + barW * i + barW / 2
-  const tyPrice  = (p: number) => H - PY - ((p - mnP) / rngP) * (H - PY * 2)
-  const barH     = (v: number) => (v / maxVol) * (H - PY * 2)
-
-  // ── Price line path ───────────────────────────────────────────────────────
-
-  const pricePts = activeData
-    .map((d, i): [number, number] | null =>
-      d.price != null ? [tx(i), tyPrice(d.price)] : null
-    )
-    .filter((pt): pt is [number, number] => pt !== null)
-
-  let lineD = '', areaD = ''
-  if (pricePts.length > 1) {
-    lineD = pricePts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
-    areaD = lineD
-      + ` L${pricePts[pricePts.length - 1][0].toFixed(1)} ${H}`
-      + ` L${pricePts[0][0].toFixed(1)} ${H}Z`
-  }
-
-  const trend   = validPrices.length >= 2 && validPrices[validPrices.length - 1] >= validPrices[0]
-  const lineCol = isEbayActive ? EBAY_VOL_COL : (trend ? 'var(--green)' : 'var(--red)')
-  const barCol  = isEbayActive ? EBAY_VOL_COL : 'var(--gold-l)'
+  const barCol      = isEbayActive ? EBAY_VOL_COL : 'var(--gold-l)'
   const barColHover = isEbayActive ? '#4a9de0' : 'var(--gold)'
-
-  // Stable gradient id — based on first date so it won't change on hover rerender
-  const uid = `sc-${activeData[0]?.date.replace(/\W/g, '') ?? 'x'}`
 
   // ── Month axis labels ─────────────────────────────────────────────────────
 
@@ -125,13 +95,7 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
     const rect = svgRef.current.getBoundingClientRect()
     const relX = (e.clientX - rect.left) / rect.width
     const i = Math.min(n - 1, Math.max(0, Math.floor(relX * n)))
-    setHover({
-      i,
-      x: tx(i),
-      date: activeData[i].date,
-      volume: activeData[i].volume,
-      price: activeData[i].price,
-    })
+    setHover({ i, x: tx(i), date: activeData[i].date, volume: activeData[i].volume })
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -180,13 +144,6 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
           onMouseLeave={() => setHover(null)}
           style={{ cursor: 'crosshair' }}
         >
-          <defs>
-            <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor={lineCol} stopOpacity="0.15" />
-              <stop offset="100%" stopColor={lineCol} stopOpacity="0.01" />
-            </linearGradient>
-          </defs>
-
           {/* Volume bars */}
           {activeData.map((d, i) => {
             const bh = barH(d.volume)
@@ -205,18 +162,6 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
             )
           })}
 
-          {/* Price area gradient fill */}
-          {areaD && <path d={areaD} fill={`url(#${uid})`} />}
-
-          {/* Price line */}
-          {lineD && (
-            <path
-              d={lineD} fill="none"
-              stroke={lineCol} strokeWidth="1.8"
-              strokeLinejoin="round" strokeLinecap="round"
-            />
-          )}
-
           {/* Hover hairline */}
           {hover && (
             <line
@@ -224,25 +169,6 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
               stroke="var(--ink)" strokeWidth="1"
               strokeOpacity="0.2" strokeDasharray="3 3"
             />
-          )}
-
-          {/* Hover dot on price line */}
-          {hover?.price != null && (() => {
-            const dotY = tyPrice(hover.price)
-            return (
-              <>
-                <circle cx={hover.x} cy={dotY} r="4"   fill={lineCol} />
-                <circle cx={hover.x} cy={dotY} r="6.5" fill={lineCol} fillOpacity="0.2" />
-              </>
-            )
-          })()}
-
-          {/* Latest price dot */}
-          {pricePts.length > 0 && (
-            <>
-              <circle cx={pricePts[pricePts.length - 1][0]} cy={pricePts[pricePts.length - 1][1]} r="3.5" fill={lineCol} />
-              <circle cx={pricePts[0][0]} cy={pricePts[0][1]} r="2.5" fill={lineCol} fillOpacity="0.4" />
-            </>
           )}
         </svg>
 
@@ -263,16 +189,13 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
             boxShadow: '0 4px 14px rgba(26,18,8,0.25)',
             zIndex: 10,
           }}>
-            {hover.price != null && (
-              <div style={{ fontWeight: 700, letterSpacing: '-0.01em' }}>{fmt(hover.price)}</div>
-            )}
-            <div style={{ opacity: 0.85, fontSize: 10, marginTop: hover.price != null ? 2 : 0 }}>
+            <div style={{ opacity: 0.85, fontWeight: 600 }}>
               {isEbayActive
                 ? `${(hover.volume ?? 0).toFixed(2)} / day (7-day avg)`
                 : `${hover.volume ?? 0} sold`
               }
             </div>
-            <div style={{ opacity: 0.55, fontSize: 10, marginTop: 1 }}>
+            <div style={{ opacity: 0.55, fontSize: 10, marginTop: 2 }}>
               {new Date(hover.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </div>
           </div>

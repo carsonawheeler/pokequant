@@ -39,6 +39,29 @@ const LINE_COLORS: Record<LineKey, string> = {
 
 const W = 480, H = 140, PX = 4, PY = 8
 
+/** Forward-fill a sparse price series into a daily series from first to last date. */
+function forwardFill(pts: { date: string; price: number }[]): { date: string; price: number }[] {
+  if (pts.length < 2) return pts
+  const sorted = [...pts].sort((a, b) => a.date.localeCompare(b.date))
+  const result: { date: string; price: number }[] = []
+  let pIdx = 0
+  let lastPrice = sorted[0].price
+
+  const cur = new Date(sorted[0].date + 'T12:00:00')
+  const end = new Date(sorted[sorted.length - 1].date + 'T12:00:00')
+
+  while (cur <= end) {
+    const dateStr = cur.toISOString().slice(0, 10)
+    while (pIdx < sorted.length && sorted[pIdx].date <= dateStr) {
+      lastPrice = sorted[pIdx].price
+      pIdx++
+    }
+    result.push({ date: dateStr, price: lastPrice })
+    cur.setDate(cur.getDate() + 1)
+  }
+  return result
+}
+
 function makePath(pts: { date: string; price: number }[], mn: number, mx: number): string {
   if (pts.length < 2) return ''
   const rng = mx - mn || 1
@@ -74,23 +97,28 @@ export default function PriceChart({ data, gradedData, ebayData, showToggle }: P
   }, [])
 
   // Build raw series from props
-  const allSeries = useMemo<Record<LineKey, { date: string; price: number }[]>>(() => ({
-    tcg: data
-      ? data.map(d => ({ date: d.snapshot_date, price: d.tcgplayer_market_price }))
-      : [],
-    ebay_raw: ebayData
-      ? ebayData.filter(d => d.ebay_raw_avg_price != null)
-                .map(d => ({ date: d.snapshot_date, price: d.ebay_raw_avg_price! }))
-      : [],
-    psa9: ebayData
+  const allSeries = useMemo<Record<LineKey, { date: string; price: number }[]>>(() => {
+    const rawPsa9  = ebayData
       ? ebayData.filter(d => d.ebay_psa9_smart_price != null)
                 .map(d => ({ date: d.snapshot_date, price: d.ebay_psa9_smart_price! }))
-      : [],
-    psa10: ebayData
+      : []
+    const rawPsa10 = ebayData
       ? ebayData.filter(d => d.ebay_psa10_smart_price != null)
                 .map(d => ({ date: d.snapshot_date, price: d.ebay_psa10_smart_price! }))
-      : [],
-  }), [data, ebayData])
+      : []
+    const rawEbay  = ebayData
+      ? ebayData.filter(d => d.ebay_raw_avg_price != null)
+                .map(d => ({ date: d.snapshot_date, price: d.ebay_raw_avg_price! }))
+      : []
+    return {
+      tcg: data
+        ? data.map(d => ({ date: d.snapshot_date, price: d.tcgplayer_market_price }))
+        : [],
+      ebay_raw: forwardFill(rawEbay),
+      psa9:     forwardFill(rawPsa9),
+      psa10:    forwardFill(rawPsa10),
+    }
+  }, [data, ebayData])
 
   const hasData = useMemo<Record<LineKey, boolean>>(() => ({
     tcg:      allSeries.tcg.length > 0,

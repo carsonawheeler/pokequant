@@ -9,6 +9,7 @@ export interface EbayPoint {
   ebay_psa9_smart_price: number | null
   ebay_psa10_smart_price: number | null
   ebay_psa10_confidence: string | null
+  ebay_psa10_daily_volume_7day?: number | null
 }
 
 const W = 480, H = 140, PX = 4, PY = 8

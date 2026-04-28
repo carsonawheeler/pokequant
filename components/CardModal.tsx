@@ -114,7 +114,7 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
         const [histRes, roiRes] = await Promise.all([
           supabase
             .from('card_ebay_snapshots')
-            .select('snapshot_date, ebay_raw_avg_price, ebay_psa9_smart_price, ebay_psa10_smart_price, ebay_psa10_confidence')
+            .select('snapshot_date, ebay_raw_avg_price, ebay_psa9_smart_price, ebay_psa10_smart_price, ebay_psa10_confidence, ebay_psa10_daily_volume_7day')
             .eq('card_id', card.tcg_id)
             .order('snapshot_date', { ascending: true }),
           supabase
@@ -402,7 +402,7 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 12 }}>
               TCGPlayer Daily Sales Volume
             </div>
-            <SalesChart data={salesHist} />
+            <SalesChart data={salesHist} ebayVolData={ebayHist} />
           </div>
         </div>
 

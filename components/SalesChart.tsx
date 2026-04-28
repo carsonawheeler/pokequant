@@ -53,14 +53,14 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
   // ── eBay PSA10 vol series ─────────────────────────────────────────────────
   const ebayVolSeries = (ebayVolData ?? [])
     .filter(d => d.ebay_psa10_daily_volume_7day != null)
-    .map(d => ({ date: d.snapshot_date, vol: d.ebay_psa10_daily_volume_7day! }))
+    .map(d => ({ date: d.snapshot_date, vol: d.ebay_psa10_daily_volume_7day!, market: d.ebay_psa10_7day_market ?? null }))
   const hasEbayVol = ebayVolSeries.length > 0
 
   // ── Active series ─────────────────────────────────────────────────────────
   const isEbayActive = volTab === 'ebay_psa10' && hasEbayVol
 
   const activeData: { date: string; volume: number; price: number | null }[] = isEbayActive
-    ? ebayVolSeries.map(d => ({ date: d.date, volume: d.vol, price: null }))
+    ? ebayVolSeries.map(d => ({ date: d.date, volume: d.vol, price: d.market }))
     : data.map(d => ({ date: d.sale_date, volume: d.volume ?? 0, price: d.market_price }))
 
   // ── Derived geometry ──────────────────────────────────────────────────────
@@ -69,9 +69,7 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
   const barW = (W - PX * 2) / Math.max(n, 1)
 
   const volumes     = activeData.map(d => d.volume)
-  const validPrices = isEbayActive
-    ? []
-    : activeData.map(d => d.price).filter((p): p is number => p != null)
+  const validPrices = activeData.map(d => d.price).filter((p): p is number => p != null)
 
   const maxVol = Math.max(...volumes, 1)
   const mnP    = validPrices.length ? Math.min(...validPrices) : 0
@@ -82,9 +80,9 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
   const tyPrice  = (p: number) => H - PY - ((p - mnP) / rngP) * (H - PY * 2)
   const barH     = (v: number) => (v / maxVol) * (H - PY * 2)
 
-  // ── Price line path (TCG only) ────────────────────────────────────────────
+  // ── Price line path ───────────────────────────────────────────────────────
 
-  const pricePts = isEbayActive ? [] : activeData
+  const pricePts = activeData
     .map((d, i): [number, number] | null =>
       d.price != null ? [tx(i), tyPrice(d.price)] : null
     )
@@ -99,7 +97,7 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
   }
 
   const trend   = validPrices.length >= 2 && validPrices[validPrices.length - 1] >= validPrices[0]
-  const lineCol = trend ? 'var(--green)' : 'var(--red)'
+  const lineCol = isEbayActive ? EBAY_VOL_COL : (trend ? 'var(--green)' : 'var(--red)')
   const barCol  = isEbayActive ? EBAY_VOL_COL : 'var(--gold-l)'
   const barColHover = isEbayActive ? '#4a9de0' : 'var(--gold)'
 
@@ -182,14 +180,12 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
           onMouseLeave={() => setHover(null)}
           style={{ cursor: 'crosshair' }}
         >
-          {!isEbayActive && (
-            <defs>
-              <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor={lineCol} stopOpacity="0.15" />
-                <stop offset="100%" stopColor={lineCol} stopOpacity="0.01" />
-              </linearGradient>
-            </defs>
-          )}
+          <defs>
+            <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor={lineCol} stopOpacity="0.15" />
+              <stop offset="100%" stopColor={lineCol} stopOpacity="0.01" />
+            </linearGradient>
+          </defs>
 
           {/* Volume bars */}
           {activeData.map((d, i) => {
@@ -209,11 +205,11 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
             )
           })}
 
-          {/* Price area gradient fill (TCG only) */}
-          {!isEbayActive && areaD && <path d={areaD} fill={`url(#${uid})`} />}
+          {/* Price area gradient fill */}
+          {areaD && <path d={areaD} fill={`url(#${uid})`} />}
 
-          {/* Price line (TCG only) */}
-          {!isEbayActive && lineD && (
+          {/* Price line */}
+          {lineD && (
             <path
               d={lineD} fill="none"
               stroke={lineCol} strokeWidth="1.8"
@@ -231,7 +227,7 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
           )}
 
           {/* Hover dot on price line */}
-          {!isEbayActive && hover?.price != null && (() => {
+          {hover?.price != null && (() => {
             const dotY = tyPrice(hover.price)
             return (
               <>
@@ -241,8 +237,8 @@ export default function SalesChart({ data, ebayVolData }: SalesChartProps) {
             )
           })()}
 
-          {/* Latest price dot (TCG only) */}
-          {!isEbayActive && pricePts.length > 0 && (
+          {/* Latest price dot */}
+          {pricePts.length > 0 && (
             <>
               <circle cx={pricePts[pricePts.length - 1][0]} cy={pricePts[pricePts.length - 1][1]} r="3.5" fill={lineCol} />
               <circle cx={pricePts[0][0]} cy={pricePts[0][1]} r="2.5" fill={lineCol} fillOpacity="0.4" />

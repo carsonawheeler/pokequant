@@ -61,6 +61,7 @@ export interface SetData {
   is_special_set: boolean | null
   release_date: string | null
   set_premium_score: number | null
+  logo_url: string | null
   set_price_snapshots: SetPriceSnapshot[] | null
 }
 

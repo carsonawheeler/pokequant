@@ -15,20 +15,27 @@ interface SealedRow extends SetData {
   latestBox:    number | null
   latestEtb:    number | null
   latestPack:   number | null
-  boxChange30d: number | null
-  etbChange30d: number | null
+  boxChange30d: number | 'insufficient' | null
+  etbChange30d: number | 'insufficient' | null
   logoUrl:      string
   chronoSnaps:  SetPriceSnapshot[]
 }
 
-function computeChange30d(snaps: SetPriceSnapshot[], key: keyof SetPriceSnapshot): number | null {
+// Returns number = valid %, 'insufficient' = < 25d span, null = no data
+function computeChange30d(snaps: SetPriceSnapshot[], key: keyof SetPriceSnapshot): number | 'insufficient' | null {
   if (!snaps.length) return null
   const latest = snaps[0][key] as number | null
   if (latest == null) return null
+  // Check if oldest snapshot is at least 25 days ago
+  const oldest = snaps[snaps.length - 1]?.snapshot_date ?? ''
+  const daySpan = oldest
+    ? Math.floor((Date.now() - new Date(oldest + 'T12:00:00').getTime()) / 86400000)
+    : 0
+  if (daySpan < 25) return 'insufficient'
   const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
   const past = snaps.find(s => s.snapshot_date <= cutoff)
   const pastVal = past?.[key] as number | null
-  if (!pastVal) return null
+  if (!pastVal) return 'insufficient'
   return ((latest - pastVal) / pastVal) * 100
 }
 
@@ -153,7 +160,10 @@ function SealedModal({ setRow, onClose }: { setRow: SealedRow; onClose: () => vo
               <div style={{ fontFamily: 'var(--fm)', fontSize: 16, fontWeight: 600, color: item.val ? 'var(--ink)' : 'var(--cborder)' }}>
                 {fmt(item.val ?? null)}
               </div>
-              {item.change != null && (
+              {item.change === 'insufficient' && (
+                <div style={{ fontSize: 10, color: 'var(--ink-light)', marginTop: 2 }}>{'< 30d data'}</div>
+              )}
+              {typeof item.change === 'number' && (
                 <div style={{ fontSize: 10, color: item.change >= 0 ? 'var(--green)' : 'var(--red)', marginTop: 2 }}>
                   {item.change >= 0 ? '+' : ''}{item.change.toFixed(1)}% 30d
                 </div>
@@ -230,7 +240,7 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
           latestPack:   snaps[0]?.pack_market_price ?? null,
           boxChange30d: computeChange30d(snaps, 'booster_box_market_price'),
           etbChange30d: computeChange30d(snaps, 'etb_market_price'),
-          logoUrl:      `https://images.pokemontcg.io/${s.set_code}/logo.png`,
+          logoUrl:      s.logo_url ?? `https://images.pokemontcg.io/${s.set_code}/logo.png`,
           chronoSnaps:  chrono,
         }
       }),
@@ -247,7 +257,11 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
       case 'box':        return base.sort((a, b) => (b.latestBox ?? 0) - (a.latestBox ?? 0))
       case 'etb':        return base.sort((a, b) => (b.latestEtb ?? 0) - (a.latestEtb ?? 0))
       case 'pack':       return base.sort((a, b) => (b.latestPack ?? 0) - (a.latestPack ?? 0))
-      case 'box_change': return base.sort((a, b) => (b.boxChange30d ?? -999) - (a.boxChange30d ?? -999))
+      case 'box_change': return base.sort((a, b) => {
+        const av = typeof a.boxChange30d === 'number' ? a.boxChange30d : -999
+        const bv = typeof b.boxChange30d === 'number' ? b.boxChange30d : -999
+        return bv - av
+      })
     }
   }, [rows, sort, query])
 
@@ -385,13 +399,15 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
             </div>
 
             <div style={{ textAlign: 'right' }}>
-              {row.boxChange30d != null ? (
+              {typeof row.boxChange30d === 'number' ? (
                 <span style={{
                   fontFamily: 'var(--fm)', fontSize: 13, fontWeight: 600,
                   color: row.boxChange30d >= 0 ? 'var(--green)' : 'var(--red)',
                 }}>
                   {row.boxChange30d >= 0 ? '+' : ''}{row.boxChange30d.toFixed(1)}%
                 </span>
+              ) : row.boxChange30d === 'insufficient' ? (
+                <span style={{ fontSize: 11, color: 'var(--ink-light)' }}>{'< 30d data'}</span>
               ) : (
                 <span style={{ color: 'var(--cborder)', fontSize: 13 }}>—</span>
               )}

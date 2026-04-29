@@ -41,14 +41,20 @@ const SET_SORTS: { id: SetSortMode; label: string }[] = [
   { id: 'release_date',  label: 'Release Date' },
 ]
 
-function computeBoxChange30d(snaps: SetPriceSnapshot[]): number | null {
+// Returns number = valid %, 'insufficient' = < 25d span, null = no data
+function computeBoxChange30d(snaps: SetPriceSnapshot[]): number | 'insufficient' | null {
   if (!snaps.length) return null
   const latest = snaps[0]?.booster_box_market_price ?? null
   if (latest == null) return null
+  const oldest = snaps[snaps.length - 1]?.snapshot_date ?? ''
+  const daySpan = oldest
+    ? Math.floor((Date.now() - new Date(oldest + 'T12:00:00').getTime()) / 86400000)
+    : 0
+  if (daySpan < 25) return 'insufficient'
   const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
   const past = snaps.find(s => s.snapshot_date <= cutoff)
   const pastVal = past?.booster_box_market_price ?? null
-  if (!pastVal) return null
+  if (!pastVal) return 'insufficient'
   return ((latest - pastVal) / pastVal) * 100
 }
 
@@ -111,7 +117,7 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
       packPrice: s.set_price_snapshots?.[0]?.pack_market_price ?? null,
       boxPrice:  s.set_price_snapshots?.[0]?.booster_box_market_price ?? null,
       etbPrice:  s.set_price_snapshots?.[0]?.etb_market_price ?? null,
-      logoUrl:   `https://images.pokemontcg.io/${s.set_code}/logo.png`,
+      logoUrl:   s.logo_url ?? `https://images.pokemontcg.io/${s.set_code}/logo.png`,
     }))
   }, [cards, setsData])
 
@@ -120,10 +126,11 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
     switch (setSort) {
       case 'premium_score': return base.sort((a, b) => (b.set_premium_score ?? 0) - (a.set_premium_score ?? 0))
       case 'avg_sir':       return base.sort((a, b) => (b.median ?? 0) - (a.median ?? 0))
-      case 'box_change':    return base.sort((a, b) =>
-        (computeBoxChange30d(b.set_price_snapshots ?? []) ?? -999) -
-        (computeBoxChange30d(a.set_price_snapshots ?? []) ?? -999)
-      )
+      case 'box_change':    return base.sort((a, b) => {
+        const av = computeBoxChange30d(a.set_price_snapshots ?? [])
+        const bv = computeBoxChange30d(b.set_price_snapshots ?? [])
+        return (typeof bv === 'number' ? bv : -999) - (typeof av === 'number' ? av : -999)
+      })
       case 'release_date':  return base.sort((a, b) => (b.release_date ?? '').localeCompare(a.release_date ?? ''))
     }
   }, [setRows, setSort])
@@ -223,7 +230,7 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
       <div style={{
         display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
         background: 'var(--c1)', border: '1px solid var(--cborder)',
-        borderRadius: 10, padding: 4, marginBottom: 22, gap: 4,
+        borderRadius: 10, padding: 4, marginBottom: 10, gap: 4,
       }}>
         {(['cards', 'sets', 'sealed'] as const).map(e => (
           <button
@@ -241,6 +248,13 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
           </button>
         ))}
       </div>
+
+      {/* ── Entity description ───────────────────────────────────────────────── */}
+      <p style={{ fontSize: 13, color: 'var(--ink-light)', marginBottom: 18, transition: 'opacity 0.15s' }}>
+        {entity === 'cards' && 'Rank all tracked SV era cards by price momentum, PSA 10 grading ROI, and sales volume across TCGPlayer and eBay'}
+        {entity === 'sets'  && 'Rank all SV era sets by cultural premium score, average SIR price, and 30-day price movement'}
+        {entity === 'sealed' && 'Rank sealed booster boxes and ETBs by current price and 30-day price change'}
+      </p>
 
       {/* ── Cards entity ─────────────────────────────────────────────────────── */}
       {entity === 'cards' && (
@@ -428,13 +442,15 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    {boxChange != null ? (
+                    {typeof boxChange === 'number' ? (
                       <span style={{
                         fontFamily: 'var(--fm)', fontSize: 13, fontWeight: 600,
                         color: boxChange >= 0 ? 'var(--green)' : 'var(--red)',
                       }}>
                         {boxChange >= 0 ? '+' : ''}{boxChange.toFixed(1)}%
                       </span>
+                    ) : boxChange === 'insufficient' ? (
+                      <span style={{ fontSize: 11, color: 'var(--ink-light)' }}>{'< 30d data'}</span>
                     ) : <span style={{ color: 'var(--cborder)', fontSize: 13 }}>—</span>}
                   </div>
                 </div>

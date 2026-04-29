@@ -64,7 +64,7 @@ export default function Home() {
             .from('sets')
             .select(`
               id, set_name, set_code, era, sir_count, is_special_set,
-              release_date, set_premium_score,
+              release_date, set_premium_score, logo_url,
               set_price_snapshots(pack_market_price, booster_box_market_price, etb_market_price, snapshot_date)
             `)
             .eq('era', 'SV')
@@ -147,6 +147,7 @@ export default function Home() {
           is_special_set:    s.is_special_set ?? null,
           release_date:      s.release_date ?? null,
           set_premium_score: s.set_premium_score ?? null,
+          logo_url:          s.logo_url ?? null,
           set_price_snapshots: [...(s.set_price_snapshots ?? [])].sort(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (a: any, b: any) => b.snapshot_date.localeCompare(a.snapshot_date)

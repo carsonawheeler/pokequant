@@ -14,8 +14,8 @@ interface SetsTabProps {
   setsMap: Map<number, SetData>
 }
 
-interface SetRow extends SetData {
-  median:   number | null
+export interface SetRow extends SetData {
+  median:    number | null
   packPrice: number | null
   boxPrice:  number | null
   etbPrice:  number | null
@@ -24,7 +24,7 @@ interface SetRow extends SetData {
 
 // ── Set detail modal ──────────────────────────────────────────────────────────
 
-function SetModal({ setRow, cards, setsMap, onClose }: {
+export function SetModal({ setRow, cards, setsMap, onClose }: {
   setRow:  SetRow
   cards:   Card[]
   setsMap: Map<number, SetData>
@@ -264,6 +264,7 @@ function SetModal({ setRow, cards, setsMap, onClose }: {
 
 export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabProps) {
   const [view,        setView]        = useState<'grid' | 'leaderboard'>('grid')
+  const [gridOrder,   setGridOrder]   = useState<'newest' | 'oldest'>('newest')
   const [query,       setQuery]       = useState('')
   const [selectedSet, setSelectedSet] = useState<SetRow | null>(null)
 
@@ -281,13 +282,24 @@ export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabPr
   }, [cards, setsData])
 
   const filtered = useMemo(() => {
-    const base = view === 'leaderboard'
-      ? [...rows].sort((a, b) => (b.median ?? 0) - (a.median ?? 0))
-      : rows
+    let base: SetRow[]
+    if (view === 'leaderboard') {
+      base = [...rows].sort((a, b) => (b.median ?? 0) - (a.median ?? 0))
+    } else {
+      // Grid: sort by release_date, fall back to id
+      base = [...rows].sort((a, b) => {
+        const ad = a.release_date ?? ''
+        const bd = b.release_date ?? ''
+        if (!ad && !bd) return gridOrder === 'newest' ? b.id - a.id : a.id - b.id
+        if (!ad) return 1
+        if (!bd) return -1
+        return gridOrder === 'newest' ? bd.localeCompare(ad) : ad.localeCompare(bd)
+      })
+    }
     if (!query.trim()) return base
     const q = query.trim().toLowerCase()
     return base.filter(s => s.set_name.toLowerCase().includes(q) || s.set_code.toLowerCase().includes(q))
-  }, [rows, view, query])
+  }, [rows, view, query, gridOrder])
 
   if (loading) {
     return (
@@ -342,8 +354,27 @@ export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabPr
           ))}
         </div>
 
+        {view === 'grid' && (
+          <div style={{ display: 'flex', gap: 0, background: 'var(--c1)', border: '1px solid var(--cborder)', borderRadius: 8, padding: 3 }}>
+            {(['newest', 'oldest'] as const).map(o => (
+              <button
+                key={o}
+                onClick={() => setGridOrder(o)}
+                style={{
+                  padding: '5px 13px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                  background: gridOrder === o ? 'var(--ink)' : 'transparent',
+                  color: gridOrder === o ? 'var(--c1)' : 'var(--ink-mid)',
+                  transition: 'all 0.15s', whiteSpace: 'nowrap',
+                }}
+              >
+                {o === 'newest' ? 'Newest First' : 'Oldest First'}
+              </button>
+            ))}
+          </div>
+        )}
+
         <span style={{ fontSize: 11, color: 'var(--ink-light)' }}>
-          {filtered.length} sets{view === 'grid' ? ' · release order' : ' · ranked by median SIR price'}
+          {filtered.length} sets{view === 'grid' ? (gridOrder === 'newest' ? ' · newest first' : ' · oldest first') : ' · ranked by median SIR price'}
         </span>
       </div>
 

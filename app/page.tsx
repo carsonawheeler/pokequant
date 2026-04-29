@@ -64,6 +64,7 @@ export default function Home() {
             .from('sets')
             .select(`
               id, set_name, set_code, era, sir_count, is_special_set,
+              release_date, set_premium_score,
               set_price_snapshots(pack_market_price, booster_box_market_price, etb_market_price, snapshot_date)
             `)
             .eq('era', 'SV')
@@ -138,12 +139,14 @@ export default function Home() {
         // Shape sets — sort price snapshots newest-first
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const shapedSets: SetData[] = (setsRes.data ?? []).map((s: any) => ({
-          id:              s.id,
-          set_name:        s.set_name,
-          set_code:        s.set_code,
-          era:             s.era,
-          sir_count:       s.sir_count ?? null,
-          is_special_set:  s.is_special_set ?? null,
+          id:                s.id,
+          set_name:          s.set_name,
+          set_code:          s.set_code,
+          era:               s.era,
+          sir_count:         s.sir_count ?? null,
+          is_special_set:    s.is_special_set ?? null,
+          release_date:      s.release_date ?? null,
+          set_premium_score: s.set_premium_score ?? null,
           set_price_snapshots: [...(s.set_price_snapshots ?? [])].sort(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (a: any, b: any) => b.snapshot_date.localeCompare(a.snapshot_date)
@@ -239,7 +242,7 @@ export default function Home() {
             {tab === 'cards'       && <CardGrid      cards={cards}  loading={loading} setsMap={setsMap} />}
             {tab === 'sets'        && <SetsTab        cards={cards}  setsData={setsData} loading={loading} setsMap={setsMap} />}
             {tab === 'sealed'      && <SealedTab      setsData={setsData} loading={loading} />}
-            {tab === 'leaderboard' && <LeaderboardTab cards={cards}  loading={loading} setsMap={setsMap} />}
+            {tab === 'leaderboard' && <LeaderboardTab cards={cards}  loading={loading} setsMap={setsMap} setsData={setsData} />}
           </>
         )}
       </main>

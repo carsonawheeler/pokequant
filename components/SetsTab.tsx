@@ -5,11 +5,13 @@ import { Card, SetData, ModelPrediction } from '@/lib/types'
 import { fmt } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { MomBadge } from './CardItem'
+import CardModal from './CardModal'
 
 interface SetsTabProps {
   cards: Card[]
   setsData: SetData[]
   loading: boolean
+  setsMap: Map<number, SetData>
 }
 
 interface SetRow extends SetData {
@@ -22,12 +24,14 @@ interface SetRow extends SetData {
 
 // ── Set detail modal ──────────────────────────────────────────────────────────
 
-function SetModal({ setRow, cards, onClose }: {
+function SetModal({ setRow, cards, setsMap, onClose }: {
   setRow:  SetRow
   cards:   Card[]
+  setsMap: Map<number, SetData>
   onClose: () => void
 }) {
-  const [predictions, setPredictions] = useState<Record<string, ModelPrediction>>({})
+  const [predictions,   setPredictions]   = useState<Record<string, ModelPrediction>>({})
+  const [selectedCard,  setSelectedCard]  = useState<Card | null>(null)
 
   const setCards = useMemo(() =>
     cards
@@ -76,6 +80,7 @@ function SetModal({ setRow, cards, onClose }: {
   ]
 
   return (
+    <>
     <div
       className="modal-overlay"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
@@ -161,13 +166,23 @@ function SetModal({ setRow, cards, onClose }: {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {top5.map((card, i) => {
                   const pred = card.tcg_id ? predictions[card.tcg_id] : null
+                  const pullCost = card.pull_cost
+                  const pullOdds = card.specific_card_odds
                   return (
-                    <div key={card.id} style={{
-                      display: 'grid',
-                      gridTemplateColumns: '24px 44px 1fr auto auto',
-                      alignItems: 'center', gap: 10,
-                      background: 'var(--c2)', borderRadius: 8, padding: '8px 12px',
-                    }}>
+                    <div
+                      key={card.id}
+                      onClick={() => setSelectedCard(card)}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '24px 44px 1fr auto auto',
+                        alignItems: 'center', gap: 10,
+                        background: 'var(--c2)', borderRadius: 8, padding: '8px 12px',
+                        cursor: 'pointer',
+                        transition: 'background 0.12s',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--cborder)' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--c2)' }}
+                    >
                       <span style={{
                         fontFamily: 'var(--fm)', fontSize: 11,
                         color: i < 3 ? 'var(--gold)' : 'var(--ink-light)',
@@ -192,6 +207,18 @@ function SetModal({ setRow, cards, onClose }: {
                             {card.character_name}
                           </div>
                         )}
+                        <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                          {pullCost != null && (
+                            <span style={{ fontSize: 9.5, color: 'var(--ink-light)', fontFamily: 'var(--fm)' }}>
+                              Pull cost {fmt(pullCost)}
+                            </span>
+                          )}
+                          {pullOdds != null && pullOdds > 0 && (
+                            <span style={{ fontSize: 9.5, color: 'var(--ink-light)' }}>
+                              1 in {Math.round(1 / pullOdds)} packs
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {pred?.signal ? (
@@ -221,12 +248,21 @@ function SetModal({ setRow, cards, onClose }: {
 
       </div>
     </div>
+
+      {selectedCard && (
+        <CardModal
+          card={selectedCard}
+          setsMap={setsMap}
+          onClose={() => setSelectedCard(null)}
+        />
+      )}
+    </>
   )
 }
 
 // ── Main SetsTab ──────────────────────────────────────────────────────────────
 
-export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
+export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabProps) {
   const [view,        setView]        = useState<'grid' | 'leaderboard'>('grid')
   const [query,       setQuery]       = useState('')
   const [selectedSet, setSelectedSet] = useState<SetRow | null>(null)
@@ -471,6 +507,7 @@ export default function SetsTab({ cards, setsData, loading }: SetsTabProps) {
         <SetModal
           setRow={selectedSet}
           cards={cards}
+          setsMap={setsMap}
           onClose={() => setSelectedSet(null)}
         />
       )}

@@ -6,26 +6,30 @@ import { Card, SetData, DemandSignal, ModelPrediction } from '@/lib/types'
 import Logo from '@/components/Logo'
 import CardGrid from '@/components/CardGrid'
 import SetsTab from '@/components/SetsTab'
-import MoversTab from '@/components/MoversTab'
+import LeaderboardTab from '@/components/LeaderboardTab'
+import SealedTab from '@/components/SealedTab'
 
-type TabId = 'cards' | 'sets' | 'movers'
+type TabId = 'cards' | 'sets' | 'sealed' | 'leaderboard'
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: 'cards',  label: 'Cards',  icon: '⊞' },
-  { id: 'sets',   label: 'Sets',   icon: '◫' },
-  { id: 'movers', label: 'Movers', icon: '↑↓' },
+  { id: 'cards',       label: 'Cards',       icon: '⊞' },
+  { id: 'sets',        label: 'Sets',        icon: '◫' },
+  { id: 'sealed',      label: 'Sealed',      icon: '⬡' },
+  { id: 'leaderboard', label: 'Leaderboard', icon: '↑↓' },
 ]
 
 const TITLES: Record<TabId, string> = {
-  cards:  'SV Special Illustration Rares',
-  sets:   'Sets',
-  movers: 'Market Movers',
+  cards:       'SV Special Illustration Rares',
+  sets:        'Sets',
+  sealed:      'Sealed Products',
+  leaderboard: 'Leaderboard',
 }
 
 const SUBTITLES: Record<TabId, string> = {
-  cards:  'Live TCGPlayer prices · AI-powered demand signals',
-  sets:   'Scarlet & Violet sets · browse by release or rank by median SIR price',
-  movers: 'Cards with the largest 30-day price movements',
+  cards:       'Live TCGPlayer prices · AI-powered demand signals',
+  sets:        'Scarlet & Violet sets · browse by release or rank by median SIR price',
+  sealed:      'Booster box, ETB, and pack prices with 30-day change · click a set for price history',
+  leaderboard: 'Rank cards by price momentum, PSA 10 ROI, eBay sales, TCGPlayer sales, or combined',
 }
 
 export default function Home() {
@@ -47,6 +51,7 @@ export default function Home() {
               nostalgia_score, character_premium_score, aesthetic_score,
               pull_cost_score, gradability_score, google_trends_score,
               is_competitive, set_median_sir_price, generation,
+              pull_cost, specific_card_odds,
               sets(id, set_name, set_code, era),
               card_demand_signals(demand_score, price_momentum_14d, price_momentum_30d, signal_date),
               model_predictions(predicted_price, ci_lower_90, ci_upper_90, signal, ratio, prediction_confidence, predicted_date)
@@ -118,6 +123,8 @@ export default function Home() {
             is_competitive:           c.is_competitive ?? null,
             set_median_sir_price:     c.set_median_sir_price ?? null,
             generation:               c.generation ?? null,
+            pull_cost:                c.pull_cost ?? null,
+            specific_card_odds:       c.specific_card_odds ?? null,
             set:                      c.sets ?? null,
             price:                    priceMap[c.id] ?? null,
             demand,
@@ -229,9 +236,10 @@ export default function Home() {
 
         {!error && (
           <>
-            {tab === 'cards'  && <CardGrid  cards={cards}  loading={loading} setsMap={setsMap} />}
-            {tab === 'sets'   && <SetsTab   cards={cards}  setsData={setsData} loading={loading} />}
-            {tab === 'movers' && <MoversTab cards={cards}  loading={loading} />}
+            {tab === 'cards'       && <CardGrid      cards={cards}  loading={loading} setsMap={setsMap} />}
+            {tab === 'sets'        && <SetsTab        cards={cards}  setsData={setsData} loading={loading} setsMap={setsMap} />}
+            {tab === 'sealed'      && <SealedTab      setsData={setsData} loading={loading} />}
+            {tab === 'leaderboard' && <LeaderboardTab cards={cards}  loading={loading} setsMap={setsMap} />}
           </>
         )}
       </main>

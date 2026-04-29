@@ -37,6 +37,8 @@ export interface Card {
   is_competitive: number | null
   set_median_sir_price: number | null
   generation: number | null
+  pull_cost: number | null
+  specific_card_odds: number | null
   set: CardSet | null
   price: number | null
   demand: DemandSignal | null

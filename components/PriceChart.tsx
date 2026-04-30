@@ -127,6 +127,13 @@ export default function PriceChart({ data, gradedData, ebayData, showToggle }: P
     psa10:    allSeries.psa10.length > 0,
   }), [allSeries])
 
+  // Detect flat Raw eBay line (all same value = aggregate repeated, not time series)
+  const isEbayFlat = useMemo(() => {
+    const prices = allSeries.ebay_raw.map(p => p.price)
+    if (prices.length < 2) return false
+    return prices.every(p => p === prices[0])
+  }, [allSeries.ebay_raw])
+
   const cutoff = useMemo(() => {
     if (range === 'all') return ''
     const days = ({ '1m': 30, '3m': 90, '6m': 180 } as Record<string, number>)[range]
@@ -207,7 +214,7 @@ export default function PriceChart({ data, gradedData, ebayData, showToggle }: P
       {showToggle && (
         <div style={{ display: 'flex', gap: 3, marginBottom: 10, flexWrap: 'wrap' }}>
           {(['tcg', 'ebay_raw', 'psa9', 'psa10'] as LineKey[]).map(key => {
-            if (key === 'ebay_raw' && !hasData.ebay_raw) return null
+            if (key === 'ebay_raw' && (!hasData.ebay_raw || isEbayFlat)) return null
             const isOn   = active.has(key)
             const noData = !hasData[key]
             const btnCol = BTN_COLORS[key]
@@ -279,9 +286,27 @@ export default function PriceChart({ data, gradedData, ebayData, showToggle }: P
           >
             <defs>
               {activeLines.includes('tcg') && (
-                <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"   stopColor={tcgCol} stopOpacity="0.16" />
-                  <stop offset="100%" stopColor={tcgCol} stopOpacity="0.01" />
+                <linearGradient id={`${uid}_tcg`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor={tcgCol}    stopOpacity="0.16" />
+                  <stop offset="100%" stopColor={tcgCol}    stopOpacity="0.01" />
+                </linearGradient>
+              )}
+              {activeLines.includes('psa9') && (
+                <linearGradient id={`${uid}_psa9`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor="#7b5ea7" stopOpacity="0.18" />
+                  <stop offset="100%" stopColor="#7b5ea7" stopOpacity="0.01" />
+                </linearGradient>
+              )}
+              {activeLines.includes('psa10') && (
+                <linearGradient id={`${uid}_psa10`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor="#2d7dd2" stopOpacity="0.18" />
+                  <stop offset="100%" stopColor="#2d7dd2" stopOpacity="0.01" />
+                </linearGradient>
+              )}
+              {activeLines.includes('ebay_raw') && (
+                <linearGradient id={`${uid}_ebay`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor="#e07b39" stopOpacity="0.16" />
+                  <stop offset="100%" stopColor="#e07b39" stopOpacity="0.01" />
                 </linearGradient>
               )}
             </defs>
@@ -292,12 +317,13 @@ export default function PriceChart({ data, gradedData, ebayData, showToggle }: P
               const lineD = makePath(pts, mn, mx)
               const col   = lineColors[key]
 
+              const areaD = lineD
+                + ` L${tx(pts.length - 1, pts.length)} ${H} L${tx(0, pts.length)} ${H}Z`
+
               if (key === 'tcg') {
-                const areaD = lineD
-                  + ` L${tx(pts.length - 1, pts.length)} ${H} L${tx(0, pts.length)} ${H}Z`
                 return (
                   <g key="tcg">
-                    <path d={areaD} fill={`url(#${uid})`} />
+                    <path d={areaD} fill={`url(#${uid}_tcg)`} />
                     <path d={lineD} fill="none" stroke={col} strokeWidth="1.8"
                           strokeLinejoin="round" strokeLinecap="round" />
                     <circle cx={tx(pts.length - 1, pts.length)} cy={ty(pts[pts.length - 1].price)} r="3.5" fill={col} />
@@ -306,10 +332,14 @@ export default function PriceChart({ data, gradedData, ebayData, showToggle }: P
                 )
               }
 
+              const gradId = key === 'psa9' ? `${uid}_psa9` : key === 'psa10' ? `${uid}_psa10` : `${uid}_ebay`
               return (
-                <path key={key} d={lineD} fill="none" stroke={col} strokeWidth="1.8"
-                      strokeLinejoin="round" strokeLinecap="round"
-                      strokeDasharray={key === 'psa9' ? '5 2' : undefined} />
+                <g key={key}>
+                  <path d={areaD} fill={`url(#${gradId})`} />
+                  <path d={lineD} fill="none" stroke={col} strokeWidth="1.8"
+                        strokeLinejoin="round" strokeLinecap="round"
+                        strokeDasharray={key === 'psa9' ? '5 2' : undefined} />
+                </g>
               )
             })}
 

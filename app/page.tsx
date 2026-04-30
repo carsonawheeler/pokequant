@@ -8,32 +8,33 @@ import CardGrid from '@/components/CardGrid'
 import SetsTab from '@/components/SetsTab'
 import LeaderboardTab from '@/components/LeaderboardTab'
 import SealedTab from '@/components/SealedTab'
+import HomeTab from '@/components/HomeTab'
 
-type TabId = 'cards' | 'sets' | 'sealed' | 'leaderboard'
+type TabId = 'home' | 'cards' | 'sets' | 'sealed' | 'leaderboard'
 
-const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: 'cards',       label: 'Cards',       icon: '⊞' },
-  { id: 'sets',        label: 'Sets',        icon: '◫' },
-  { id: 'sealed',      label: 'Sealed',      icon: '⬡' },
-  { id: 'leaderboard', label: 'Leaderboard', icon: '↑↓' },
+const TABS: { id: Exclude<TabId, 'home'>; label: string; icon: string }[] = [
+  { id: 'cards',       label: 'Cards',       icon: '♠' },
+  { id: 'sets',        label: 'Sets',        icon: '⊟' },
+  { id: 'sealed',      label: 'Sealed',      icon: '▢' },
+  { id: 'leaderboard', label: 'Leaderboard', icon: '★' },
 ]
 
-const TITLES: Record<TabId, string> = {
+const TITLES: Record<Exclude<TabId, 'home'>, string> = {
   cards:       'SV Special Illustration Rares',
   sets:        'Sets',
   sealed:      'Sealed Products',
   leaderboard: 'Leaderboard',
 }
 
-const SUBTITLES: Record<TabId, string> = {
-  cards:       'Live TCGPlayer prices · AI-powered demand signals',
-  sets:        'Scarlet & Violet sets · browse by release or rank by median SIR price',
-  sealed:      'Booster box, ETB, and pack prices with 30-day change · click a set for price history',
-  leaderboard: 'Rank cards by price momentum, PSA 10 ROI, eBay sales, TCGPlayer sales, or combined',
+const SUBTITLES: Record<Exclude<TabId, 'home'>, string> = {
+  cards:       'Search and filter 168 tracked SV era Special Illustration Rares. Each card shows an ML-generated fair value prediction, demand score, PSA 10 grading ROI, and 6-month price history from TCGPlayer and eBay.',
+  sets:        'Browse all 16 SV era sets. Click any set to see its top cards by value, pull rates for SIRs and Illustration Rares, and individual card price data.',
+  sealed:      'Track booster box, ETB, and pack prices for every SV set updated nightly. Compare 30-day price movement across sealed products.',
+  leaderboard: 'Rank all tracked SV SIRs by price momentum, PSA 10 grading ROI, or sales volume across TCGPlayer and eBay.',
 }
 
 export default function Home() {
-  const [tab,      setTab]      = useState<TabId>('cards')
+  const [tab,      setTab]      = useState<TabId>('home')
   const [cards,    setCards]    = useState<Card[]>([])
   const [setsData, setSetsData] = useState<SetData[]>([])
   const [loading,  setLoading]  = useState(true)
@@ -171,6 +172,8 @@ export default function Home() {
     return m
   }, [setsData])
 
+  const isHome = tab === 'home'
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--c2)' }}>
 
@@ -185,9 +188,16 @@ export default function Home() {
           maxWidth: 1320, margin: '0 auto', padding: '0 28px',
           display: 'flex', alignItems: 'center', height: 58, gap: 24,
         }}>
-          <Logo />
+          {/* Clickable logo → home */}
+          <button
+            onClick={() => setTab('home')}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
+            aria-label="Go to home"
+          >
+            <Logo />
+          </button>
 
-          <div style={{ width: 1, height: 22, background: 'var(--cborder)', flexShrink: 0 }} />
+          <div className="nav-separator" style={{ width: 1, height: 22, background: 'var(--cborder)', flexShrink: 0 }} />
 
           {/* Tab nav */}
           <nav style={{ display: 'flex', gap: 2 }}>
@@ -225,25 +235,34 @@ export default function Home() {
 
       {/* ── Main ── */}
       <main className="main-pad" style={{ maxWidth: 1320, margin: '0 auto', padding: '34px 28px 80px' }}>
-        <div style={{ marginBottom: 26 }}>
-          <h1 className="page-h1" style={{ fontFamily: 'var(--fd)', fontSize: 32, color: 'var(--ink)', marginBottom: 5, letterSpacing: '-0.01em' }}>
-            {TITLES[tab]}
-          </h1>
-          <p style={{ fontSize: 13, color: 'var(--ink-light)' }}>{SUBTITLES[tab]}</p>
-        </div>
 
-        {error && (
-          <div style={{ padding: '20px', background: 'var(--red-bg)', borderRadius: 10, color: 'var(--red)', fontSize: 13, border: `1px solid var(--red)` }}>
-            Could not load data: {error}
-          </div>
-        )}
+        {/* Home page */}
+        {isHome && <HomeTab onNavigate={t => setTab(t)} />}
 
-        {!error && (
+        {/* Tab pages */}
+        {!isHome && (
           <>
-            {tab === 'cards'       && <CardGrid      cards={cards}  loading={loading} setsMap={setsMap} />}
-            {tab === 'sets'        && <SetsTab        cards={cards}  setsData={setsData} loading={loading} setsMap={setsMap} />}
-            {tab === 'sealed'      && <SealedTab      setsData={setsData} loading={loading} />}
-            {tab === 'leaderboard' && <LeaderboardTab cards={cards}  loading={loading} setsMap={setsMap} setsData={setsData} />}
+            <div style={{ marginBottom: 26 }}>
+              <h1 className="page-h1" style={{ fontFamily: 'var(--fd)', fontSize: 32, color: 'var(--ink)', marginBottom: 5, letterSpacing: '-0.01em' }}>
+                {TITLES[tab as Exclude<TabId, 'home'>]}
+              </h1>
+              <p style={{ fontSize: 13, color: 'var(--ink-light)' }}>{SUBTITLES[tab as Exclude<TabId, 'home'>]}</p>
+            </div>
+
+            {error && (
+              <div style={{ padding: '20px', background: 'var(--red-bg)', borderRadius: 10, color: 'var(--red)', fontSize: 13, border: `1px solid var(--red)` }}>
+                Could not load data: {error}
+              </div>
+            )}
+
+            {!error && (
+              <>
+                {tab === 'cards'       && <CardGrid      cards={cards}  loading={loading} setsMap={setsMap} />}
+                {tab === 'sets'        && <SetsTab        cards={cards}  setsData={setsData} loading={loading} setsMap={setsMap} />}
+                {tab === 'sealed'      && <SealedTab      setsData={setsData} loading={loading} />}
+                {tab === 'leaderboard' && <LeaderboardTab cards={cards}  loading={loading} setsMap={setsMap} setsData={setsData} />}
+              </>
+            )}
           </>
         )}
       </main>

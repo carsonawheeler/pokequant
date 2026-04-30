@@ -150,7 +150,7 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
 
   const marketCells = [
     { label: 'Pack Price',     value: packPrice ? fmt(packPrice) : null,                               sub: 'Secondary market' },
-    { label: 'Set Median SIR', value: card.set_median_sir_price ? fmt(card.set_median_sir_price) : null, sub: card.set?.set_name ?? '' },
+    { label: 'Avg SIR Price', value: card.set_median_sir_price ? fmt(card.set_median_sir_price) : null, sub: card.set?.set_name ?? '' },
     { label: 'eBay Avg Sale',  value: ebayRoi?.ebay_raw_avg_price != null ? fmt(ebayRoi.ebay_raw_avg_price) : null,           sub: '7-day rolling avg · eBay sold listings' },
     { label: 'PSA 10 ROI',    value: ebayRoi?.grading_roi_psa10  != null ? `${ebayRoi.grading_roi_psa10.toFixed(1)}×` : null, sub: 'Raw → PSA 10' },
   ]

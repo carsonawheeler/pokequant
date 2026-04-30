@@ -11,7 +11,7 @@ import SealedTab from './SealedTab'
 
 type Entity      = 'cards' | 'sets' | 'sealed'
 type CardSort    = 'momentum' | 'psa10_roi' | 'ebay_sales' | 'tcg_sales' | 'combined_sales'
-type SetSortMode = 'premium_score' | 'avg_sir' | 'box_change' | 'release_date'
+type SetSortMode = 'premium_score' | 'avg_sir' | 'box_change'
 
 interface LatestEbaySnap {
   grading_roi_psa10:      number | null
@@ -38,7 +38,6 @@ const SET_SORTS: { id: SetSortMode; label: string }[] = [
   { id: 'premium_score', label: 'Set Premium Score' },
   { id: 'avg_sir',       label: 'Avg SIR Price' },
   { id: 'box_change',    label: '30d Price Change' },
-  { id: 'release_date',  label: 'Release Date' },
 ]
 
 // Returns number = valid %, 'insufficient' = < 25d span, null = no data
@@ -69,6 +68,7 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
   const [tcgSalesMap,    setTcgSalesMap]    = useState<Record<string, number>>({})
   const [dataLoading,    setDataLoading]    = useState(false)
   const [dataFetched,    setDataFetched]    = useState(false)
+  const [premiumTip,     setPremiumTip]     = useState(false)
 
   // Reset search when switching entities
   useEffect(() => { setQuery('') }, [entity])
@@ -131,7 +131,6 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
         const bv = computeBoxChange30d(b.set_price_snapshots ?? [])
         return (typeof bv === 'number' ? bv : -999) - (typeof av === 'number' ? av : -999)
       })
-      case 'release_date':  return base.sort((a, b) => (b.release_date ?? '').localeCompare(a.release_date ?? ''))
     }
   }, [setRows, setSort])
 
@@ -303,14 +302,14 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
           </div>
 
           {/* Column headers */}
-          <div style={{
+          <div className="lb-card-head" style={{
             display: 'grid', gridTemplateColumns: '36px 56px 1fr 130px 120px',
             padding: '5px 16px', gap: 14, marginBottom: 5,
             fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)',
           }}>
             <span /><span /><span>Card</span>
             <span style={{ textAlign: 'right' }}>{CARD_SORTS.find(m => m.id === cardSort)?.label}</span>
-            <span style={{ textAlign: 'right' }}>Price</span>
+            <span className="lb-card-price-col" style={{ textAlign: 'right' }}>Price</span>
           </div>
 
           {/* Card rows */}
@@ -320,6 +319,7 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
               return (
                 <div
                   key={card.id}
+                  className="lb-card-row"
                   onClick={() => setSelectedCard(card)}
                   style={{
                     background: 'var(--c1)', borderRadius: 10, padding: '10px 16px',
@@ -347,7 +347,7 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
                     }}>{metric.value}</div>
                     <div style={{ fontSize: 10, color: 'var(--ink-light)', marginTop: 2 }}>{metric.sub}</div>
                   </div>
-                  <div style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>
+                  <div className="lb-card-price-col" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>
                     {fmt(card.price)}
                   </div>
                 </div>
@@ -378,14 +378,45 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
           </div>
 
           {/* Column headers */}
-          <div style={{
+          <div className="lb-set-head" style={{
             display: 'grid', gridTemplateColumns: '36px 48px 1fr 90px 120px 100px',
             padding: '5px 16px', gap: 14, marginBottom: 5,
             fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)',
           }}>
             <span>#</span><span /><span>Set</span>
-            <span style={{ textAlign: 'right' }}>Premium</span>
-            <span style={{ textAlign: 'right' }}>Median SIR</span>
+            <span className="lb-premium-col" style={{ textAlign: 'right', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+              Premium
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <button
+                  onClick={() => setPremiumTip(v => !v)}
+                  onBlur={() => setPremiumTip(false)}
+                  style={{
+                    width: 13, height: 13, borderRadius: '50%',
+                    background: 'var(--cborder)', color: 'var(--ink-mid)',
+                    fontSize: 8, fontWeight: 700, lineHeight: 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    textTransform: 'none', letterSpacing: 0,
+                  }}
+                  aria-label="About Set Premium Score"
+                >ⓘ</button>
+                {premiumTip && (
+                  <div style={{
+                    position: 'absolute', bottom: 18, right: 0,
+                    background: 'var(--ink)', color: 'var(--c1)',
+                    borderRadius: 8, padding: '10px 12px', fontSize: 11,
+                    width: 240, lineHeight: 1.5, zIndex: 50,
+                    boxShadow: '0 8px 24px rgba(26,18,8,0.25)',
+                    textTransform: 'none', letterSpacing: 'normal',
+                  }}>
+                    <div style={{ fontWeight: 700, marginBottom: 5 }}>Set Premium Score</div>
+                    <div style={{ opacity: 0.85 }}>
+                      Reflects a set&apos;s overall cultural significance and collector demand. Higher scores mean the set commands a premium — driven by iconic Pokémon, artwork quality, and long-term collectibility. Scores decay slowly over time as sets age.
+                    </div>
+                  </div>
+                )}
+              </span>
+            </span>
+            <span style={{ textAlign: 'right' }}>Avg SIR Price</span>
             <span style={{ textAlign: 'right' }}>Box 30d</span>
           </div>
 
@@ -396,6 +427,7 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
               return (
                 <div
                   key={s.id}
+                  className="lb-set-row"
                   onClick={() => setSelectedSetRow(s)}
                   style={{
                     background: 'var(--c1)', borderRadius: 10, padding: '10px 16px',
@@ -427,7 +459,7 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
                     </div>
                   </div>
 
-                  <div style={{
+                  <div className="lb-premium-col" style={{
                     textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, fontWeight: 500,
                     color: s.set_premium_score != null ? 'var(--ink)' : 'var(--cborder)',
                   }}>

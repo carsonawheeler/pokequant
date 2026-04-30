@@ -374,25 +374,28 @@ export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabPr
               }}
             >
               <div style={{
-                height: 100, background: 'var(--c2)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderBottom: '1px solid var(--cborder)', padding: '12px 20px',
+                height: 100, position: 'relative', overflow: 'hidden',
+                borderBottom: '1px solid var(--cborder)',
               }}>
-                <img
-                  src={s.logoUrl}
-                  alt={s.set_name}
-                  loading="lazy"
-                  style={{ maxWidth: '100%', maxHeight: 72, objectFit: 'contain' }}
-                  onError={e => {
-                    const img = e.currentTarget
-                    img.style.display = 'none'
-                    const sib = img.nextElementSibling as HTMLElement | null
-                    if (sib) sib.style.display = 'block'
-                  }}
-                />
-                <span style={{ display: 'none', fontFamily: 'var(--fd)', fontSize: 15, fontStyle: 'italic', color: 'var(--ink-mid)' }}>
-                  {s.set_name}
-                </span>
+                {/* Blurred logo background */}
+                <div style={{
+                  position: 'absolute', inset: -8,
+                  backgroundImage: `url(${s.logoUrl})`,
+                  backgroundSize: 'cover', backgroundPosition: 'center',
+                  filter: 'blur(14px) brightness(0.7) saturate(1.4)',
+                  transform: 'scale(1.12)',
+                }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
+                {/* Logo image */}
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 20px', zIndex: 1 }}>
+                  <img
+                    src={s.logoUrl}
+                    alt={s.set_name}
+                    loading="lazy"
+                    style={{ maxWidth: '100%', maxHeight: 72, objectFit: 'contain' }}
+                    onError={e => { e.currentTarget.style.display = 'none' }}
+                  />
+                </div>
               </div>
 
               <div style={{ padding: '10px 14px 13px' }}>
@@ -453,7 +456,7 @@ export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabPr
             fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)',
           }}>
             <span>#</span><span></span><span>Set</span>
-            <span style={{ textAlign: 'right' }}>Median SIR</span>
+            <span style={{ textAlign: 'right' }}>Avg SIR Price</span>
             <span className="lb-box-header" style={{ textAlign: 'right' }}>Pack</span>
             <span className="lb-box-header" style={{ textAlign: 'right' }}>Box</span>
             <span className="lb-box-header" style={{ textAlign: 'right' }}>ETB</span>

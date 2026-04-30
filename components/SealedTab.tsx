@@ -70,6 +70,7 @@ function SealedModal({ setRow, onClose }: { setRow: SealedRow; onClose: () => vo
   // SVG chart
   const W = 440, H = 130, PX = 4, PY = 10
   const n = snaps.length
+  const uid = `sg${setRow.id}`
 
   const allPrices = snaps.flatMap(s => [
     s.booster_box_market_price,
@@ -85,12 +86,22 @@ function SealedModal({ setRow, onClose }: { setRow: SealedRow; onClose: () => vo
   const ty = (v: number | null) =>
     v != null ? H - PY - ((v - minP) / range) * (H - PY * 2) : null
 
-  function pathFor(key: 'booster_box_market_price' | 'etb_market_price' | 'pack_market_price'): string {
+  type PriceKey = 'booster_box_market_price' | 'etb_market_price' | 'pack_market_price'
+  function pathFor(key: PriceKey): string {
     const pts = snaps
       .map((s, i) => ({ x: tx(i), y: ty(s[key]) }))
       .filter((p): p is { x: number; y: number } => p.y != null)
     if (!pts.length) return ''
     return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+  }
+  function areaFor(key: PriceKey): string {
+    const line = pathFor(key)
+    if (!line) return ''
+    const pts = snaps
+      .map((s, i) => ({ x: tx(i), y: ty(s[key]) }))
+      .filter((p): p is { x: number; y: number } => p.y != null)
+    if (pts.length < 2) return ''
+    return line + ` L${pts[pts.length - 1].x.toFixed(1)} ${H} L${pts[0].x.toFixed(1)} ${H}Z`
   }
 
   const months: string[] = []
@@ -179,19 +190,35 @@ function SealedModal({ setRow, onClose }: { setRow: SealedRow; onClose: () => vo
               Price History
             </div>
             <svg className="chart-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+              <defs>
+                <linearGradient id={`${uid}_box`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#2d7dd2" stopOpacity="0.18" />
+                  <stop offset="100%" stopColor="#2d7dd2" stopOpacity="0.01" />
+                </linearGradient>
+                <linearGradient id={`${uid}_etb`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#C9A227" stopOpacity="0.16" />
+                  <stop offset="100%" stopColor="#C9A227" stopOpacity="0.01" />
+                </linearGradient>
+              </defs>
               {SERIES.map(s => {
-                const d = pathFor(s.key)
-                return d ? (
-                  <path
-                    key={s.key}
-                    d={d}
-                    fill="none"
-                    stroke={s.col}
-                    strokeWidth={s.key === 'pack_market_price' ? 1 : 1.5}
-                    strokeLinejoin="round"
-                    strokeDasharray={s.key === 'pack_market_price' ? '3 3' : undefined}
-                  />
-                ) : null
+                const lineD = pathFor(s.key)
+                if (!lineD) return null
+                const fillId = s.key === 'booster_box_market_price' ? `${uid}_box`
+                             : s.key === 'etb_market_price' ? `${uid}_etb` : null
+                const area = fillId ? areaFor(s.key) : ''
+                return (
+                  <g key={s.key}>
+                    {area && <path d={area} fill={`url(#${fillId})`} />}
+                    <path
+                      d={lineD}
+                      fill="none"
+                      stroke={s.col}
+                      strokeWidth={s.key === 'pack_market_price' ? 1 : 1.5}
+                      strokeLinejoin="round"
+                      strokeDasharray={s.key === 'pack_market_price' ? '3 3' : undefined}
+                    />
+                  </g>
+                )
               })}
             </svg>
 
@@ -328,16 +355,16 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
       </div>
 
       {/* Column headers */}
-      <div style={{
+      <div className="sealed-head" style={{
         display: 'grid', gridTemplateColumns: '36px 48px 1fr 110px 110px 100px 100px',
         padding: '5px 16px', gap: 14, marginBottom: 5,
         fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)',
       }}>
         <span>#</span><span /><span>Set</span>
         <span style={{ textAlign: 'right' }}>Box</span>
-        <span style={{ textAlign: 'right' }}>ETB</span>
-        <span style={{ textAlign: 'right' }}>Pack</span>
-        <span style={{ textAlign: 'right' }}>Box 30d</span>
+        <span className="sealed-etb-col" style={{ textAlign: 'right' }}>ETB</span>
+        <span className="sealed-pack-col" style={{ textAlign: 'right' }}>Pack</span>
+        <span style={{ textAlign: 'right' }}>30d</span>
       </div>
 
       {/* Rows */}
@@ -345,6 +372,7 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
         {filtered.map((row, i) => (
           <div
             key={row.id}
+            className="sealed-row"
             onClick={() => setSelectedSet(row)}
             style={{
               background: 'var(--c1)', borderRadius: 10, padding: '11px 16px',
@@ -384,14 +412,14 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
               {fmt(row.latestBox)}
             </div>
 
-            <div style={{
+            <div className="sealed-etb-col" style={{
               textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, fontWeight: 500,
               color: row.latestEtb ? (row.is_special_set ? 'var(--gold)' : 'var(--ink)') : 'var(--cborder)',
             }}>
               {fmt(row.latestEtb)}
             </div>
 
-            <div style={{
+            <div className="sealed-pack-col" style={{
               textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 13,
               color: row.latestPack ? 'var(--ink-mid)' : 'var(--cborder)',
             }}>

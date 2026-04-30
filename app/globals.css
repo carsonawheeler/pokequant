@@ -8,8 +8,8 @@
   --ink: #1A1208;
   --ink-mid: #4A3D28;
   --ink-light: #8C7A5A;
-  --gold: #F5CC8E;
-  --gold-l: #D4AF78;
+  --gold: #C9A227;
+  --gold-l: #A8861D;
   --green: #2D6B2D;
   --green-bg: #E0EDDA;
   --red: #7A3020;
@@ -215,7 +215,7 @@ button {
   .sets-grid { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
-/* Leaderboard: hide box col on mobile */
+/* Leaderboard: hide box col on mobile (SetsTab leaderboard) */
 .lb-box-header { }
 .lb-box-cell   { }
 .lb-badge-cell { }
@@ -224,6 +224,28 @@ button {
   .lb-box-cell   { display: none !important; }
   .lb-row        { grid-template-columns: 40px 40px 1fr 100px 90px 60px !important; }
   .lb-head       { grid-template-columns: 40px 40px 1fr 100px 90px 60px !important; }
+}
+
+/* LeaderboardTab: card entity rows */
+@media (max-width: 640px) {
+  .lb-card-row  { grid-template-columns: 28px 44px 1fr 110px !important; }
+  .lb-card-head { grid-template-columns: 28px 44px 1fr 110px !important; }
+  .lb-card-price-col { display: none !important; }
+}
+
+/* LeaderboardTab: sets entity rows */
+@media (max-width: 640px) {
+  .lb-set-row   { grid-template-columns: 28px 40px 1fr 100px 80px !important; }
+  .lb-set-head  { grid-template-columns: 28px 40px 1fr 100px 80px !important; }
+  .lb-premium-col { display: none !important; }
+}
+
+/* Sealed tab: hide ETB and Pack cols on mobile */
+@media (max-width: 640px) {
+  .sealed-row  { grid-template-columns: 28px 40px 1fr 90px 70px !important; }
+  .sealed-head { grid-template-columns: 28px 40px 1fr 90px 70px !important; }
+  .sealed-etb-col  { display: none !important; }
+  .sealed-pack-col { display: none !important; }
 }
 
 /* Movers: hide rank on mobile */

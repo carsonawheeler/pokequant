@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import styles from './NewHomeTab.module.css'
+import SiteNav from './SiteNav'
 
 // ── Card layout configs (from original design) ─────────────────────────────
 const CARD_CONFIGS = [
@@ -426,33 +427,8 @@ export default function NewHomeTab({ onNavigate }: { onNavigate: (tab: NavTab) =
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className={styles.nav}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          {/* Logo — clicking returns to home (no-op since we're already here) */}
-          <button className={styles.logoBtn} onClick={() => {}}>
-            <svg className={styles.logoMark} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M22 8 A9 9 0 1 0 22 24"/>
-              <circle cx="20" cy="16" r="4" strokeWidth="2.6"/>
-              <line x1="23" y1="19" x2="28" y2="24" strokeWidth="2.8"/>
-            </svg>
-            <span className={styles.logoText}>CardQuant</span>
-            <span className={styles.betaBadge}>BETA</span>
-          </button>
-
-          <div className={styles.navLinks}>
-            <button onClick={() => onNavigate('sets')}>Sets</button>
-            <button onClick={() => onNavigate('cards')}>Cards</button>
-            <button onClick={() => onNavigate('sealed')}>Sealed</button>
-            <button onClick={() => onNavigate('leaderboard')}>Leaderboard</button>
-          </div>
-        </div>
-
-        <div className={styles.liveIndicator}>
-          <div className={styles.liveDot} />
-          LIVE DATA
-        </div>
-      </nav>
+      {/* Navigation — shared SiteNav component */}
+      <SiteNav onNavigate={onNavigate} onHome={() => {}} />
 
       {/* Hero */}
       <section className={styles.hero}>

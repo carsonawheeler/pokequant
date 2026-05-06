@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Card, SetData, DemandSignal, ModelPrediction } from '@/lib/types'
-import Logo from '@/components/Logo'
+import SiteNav from '@/components/SiteNav'
 import CardGrid from '@/components/CardGrid'
 import SetsTab from '@/components/SetsTab'
 import LeaderboardTab from '@/components/LeaderboardTab'
@@ -11,13 +11,6 @@ import SealedTab from '@/components/SealedTab'
 import NewHomeTab from '@/components/NewHomeTab'
 
 type TabId = 'home' | 'cards' | 'sets' | 'sealed' | 'leaderboard'
-
-const TABS: { id: Exclude<TabId, 'home'>; label: string; icon: string }[] = [
-  { id: 'cards',       label: 'Cards',       icon: '♠' },
-  { id: 'sets',        label: 'Sets',        icon: '⊟' },
-  { id: 'sealed',      label: 'Sealed',      icon: '▢' },
-  { id: 'leaderboard', label: 'Leaderboard', icon: '★' },
-]
 
 const TITLES: Record<Exclude<TabId, 'home'>, string> = {
   cards:       'SV Special Illustration Rares',
@@ -180,61 +173,13 @@ export default function Home() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--c2)' }}>
 
-      {/* ── Nav ── */}
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        background: 'rgba(247,242,232,0.93)', backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid var(--cborder)',
-        boxShadow: '0 1px 16px rgba(26,18,8,0.06)',
-      }}>
-        <div style={{
-          maxWidth: 1320, margin: '0 auto', padding: '0 28px',
-          display: 'flex', alignItems: 'center', height: 58, gap: 24,
-        }}>
-          {/* Clickable logo → home */}
-          <button
-            onClick={() => setTab('home')}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
-            aria-label="Go to home"
-          >
-            <Logo />
-          </button>
-
-          <div className="nav-separator" style={{ width: 1, height: 22, background: 'var(--cborder)', flexShrink: 0 }} />
-
-          {/* Tab nav */}
-          <nav style={{ display: 'flex', gap: 2 }}>
-            {TABS.map(t => (
-              <button
-                key={t.id}
-                className="tab-btn"
-                onClick={() => setTab(t.id)}
-                style={{
-                  padding: '6px 18px', borderRadius: 7, fontSize: 13, fontWeight: 500,
-                  background: tab === t.id ? 'var(--ink)' : 'transparent',
-                  color: tab === t.id ? 'var(--c1)' : 'var(--ink-mid)',
-                }}
-              >
-                <span className="tab-label">{t.label}</span>
-                <span className="tab-icon">{t.icon}</span>
-              </button>
-            ))}
-          </nav>
-
-          {/* Live status */}
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-            {!loading && !error && (
-              <>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
-                <span className="nav-live-text" style={{ fontSize: 11, color: 'var(--ink-light)', fontFamily: 'var(--fm)' }}>
-                  Live · {cards.length} SIRs
-                </span>
-              </>
-            )}
-            {loading && <span className="nav-live-text" style={{ fontSize: 11, color: 'var(--ink-light)' }}>Loading…</span>}
-          </div>
-        </div>
-      </header>
+      {/* ── Nav — shared SiteNav component ── */}
+      <SiteNav
+        activeTab={tab}
+        onNavigate={t => setTab(t)}
+        onHome={() => setTab('home')}
+        liveCount={!loading && !error ? cards.length : null}
+      />
 
       {/* ── Main ── */}
       <main className="main-pad" style={{ maxWidth: 1320, margin: '0 auto', padding: '34px 28px 80px' }}>

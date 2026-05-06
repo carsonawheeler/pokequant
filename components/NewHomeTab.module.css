@@ -125,100 +125,6 @@
 .tickerDown  { color: #eb5757; }
 .tickerDot   { color: rgba(255,255,255,0.15); }
 
-/* ── Nav ─────────────────────────────────────────────────────────────────── */
-.nav {
-  position: relative;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 44px;
-  height: 54px;
-  background: rgba(234,230,218,0.90);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border);
-}
-
-.logoBtn {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--ink);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-
-.logoMark {
-  width: 28px;
-  height: 28px;
-  color: var(--gold);
-  display: block;
-  flex-shrink: 0;
-}
-
-.logoText {
-  font-family: 'Playfair Display', serif;
-  font-weight: 700;
-  font-size: 17px;
-}
-
-.betaBadge {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 0.10em;
-  background: var(--ink);
-  color: var(--cream);
-  padding: 2px 6px;
-  border-radius: 3px;
-}
-
-.navLinks {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.navLinks button {
-  font-size: 13.5px;
-  font-family: 'DM Sans', sans-serif;
-  color: var(--ink-soft);
-  padding: 6px 14px;
-  border-radius: 7px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.navLinks button:hover {
-  background: var(--gold-pale);
-  color: var(--ink);
-}
-
-.liveIndicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  color: var(--ink-muted);
-}
-
-@keyframes pdot {
-  0%, 100% { opacity: 1; transform: scale(1);  }
-  50%       { opacity: 0.55; transform: scale(0.8); }
-}
-
-.liveDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #27ae60;
-  animation: pdot 2s ease-in-out infinite;
-}
-
 /* ── Hero ────────────────────────────────────────────────────────────────── */
 .hero {
   position: relative;
@@ -551,21 +457,6 @@
 
 /* ── Mobile (≤640px) ─────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-
-  /* Nav — tighter padding, hide links */
-  .nav {
-    padding: 0 18px;
-    height: 50px;
-  }
-
-  .navLinks {
-    display: none;
-  }
-
-  .liveIndicator {
-    font-size: 10px;
-    gap: 4px;
-  }
 
   /* Ticker — slightly smaller to fit */
   .tickerItem {

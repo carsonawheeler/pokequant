@@ -548,3 +548,108 @@
 }
 
 .footerLinks a:hover { color: var(--gold); }
+
+/* ── Mobile (≤640px) ─────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+
+  /* Nav — tighter padding, hide links */
+  .nav {
+    padding: 0 18px;
+    height: 50px;
+  }
+
+  .navLinks {
+    display: none;
+  }
+
+  .liveIndicator {
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  /* Ticker — slightly smaller to fit */
+  .tickerItem {
+    font-size: 9.5px;
+    padding: 0 16px;
+  }
+
+  /* Cards layer — hide center cards (indices 2-5, 9, 13-16 in 1-based).
+     Keep only edge/corner cards: 1,6,7,8,10,11,12 (6 visible). */
+  .cardsLayer > div:nth-child(2),
+  .cardsLayer > div:nth-child(3),
+  .cardsLayer > div:nth-child(4),
+  .cardsLayer > div:nth-child(5),
+  .cardsLayer > div:nth-child(9),
+  .cardsLayer > div:nth-child(13),
+  .cardsLayer > div:nth-child(14),
+  .cardsLayer > div:nth-child(15),
+  .cardsLayer > div:nth-child(16) {
+    display: none;
+  }
+
+  /* Hero — reduce vertical space */
+  .hero {
+    min-height: auto;
+    padding: 36px 20px 32px;
+  }
+
+  .heroPlate {
+    padding: 32px 24px 28px;
+    border-radius: 14px;
+    margin-bottom: 24px;
+  }
+
+  .heroTitle {
+    font-size: clamp(34px, 9vw, 52px);
+    margin-bottom: 18px;
+  }
+
+  .heroEyebrow {
+    font-size: 9.5px;
+    margin-bottom: 18px;
+  }
+
+  .heroSub {
+    font-size: 14px;
+  }
+
+  /* Stats — 2×2 grid */
+  .statsRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--border);
+    gap: 1px;
+    border-radius: 12px;
+  }
+
+  .stat {
+    padding: 18px 12px;
+  }
+
+  .statNum {
+    font-size: 22px;
+  }
+
+  /* Features grid — single column */
+  .featuresGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .fc {
+    padding: 22px 20px 20px;
+  }
+
+  /* Section padding */
+  .section {
+    padding: 0 20px 48px;
+  }
+
+  /* Footer — stack vertically */
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 20px;
+  }
+}

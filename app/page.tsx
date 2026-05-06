@@ -8,7 +8,7 @@ import CardGrid from '@/components/CardGrid'
 import SetsTab from '@/components/SetsTab'
 import LeaderboardTab from '@/components/LeaderboardTab'
 import SealedTab from '@/components/SealedTab'
-import HomeTab from '@/components/HomeTab'
+import NewHomeTab from '@/components/NewHomeTab'
 
 type TabId = 'home' | 'cards' | 'sets' | 'sealed' | 'leaderboard'
 
@@ -172,7 +172,10 @@ export default function Home() {
     return m
   }, [setsData])
 
-  const isHome = tab === 'home'
+  // ── Full-screen home page (has its own nav / ticker / footer) ──────────
+  if (tab === 'home') {
+    return <NewHomeTab onNavigate={t => setTab(t)} />
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--c2)' }}>
@@ -236,33 +239,26 @@ export default function Home() {
       {/* ── Main ── */}
       <main className="main-pad" style={{ maxWidth: 1320, margin: '0 auto', padding: '34px 28px 80px' }}>
 
-        {/* Home page */}
-        {isHome && <HomeTab onNavigate={t => setTab(t)} />}
-
         {/* Tab pages */}
-        {!isHome && (
+        <div style={{ marginBottom: 26 }}>
+          <h1 className="page-h1" style={{ fontFamily: 'var(--fd)', fontSize: 32, color: 'var(--ink)', marginBottom: 5, letterSpacing: '-0.01em' }}>
+            {TITLES[tab as Exclude<TabId, 'home'>]}
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--ink-light)' }}>{SUBTITLES[tab as Exclude<TabId, 'home'>]}</p>
+        </div>
+
+        {error && (
+          <div style={{ padding: '20px', background: 'var(--red-bg)', borderRadius: 10, color: 'var(--red)', fontSize: 13, border: `1px solid var(--red)` }}>
+            Could not load data: {error}
+          </div>
+        )}
+
+        {!error && (
           <>
-            <div style={{ marginBottom: 26 }}>
-              <h1 className="page-h1" style={{ fontFamily: 'var(--fd)', fontSize: 32, color: 'var(--ink)', marginBottom: 5, letterSpacing: '-0.01em' }}>
-                {TITLES[tab as Exclude<TabId, 'home'>]}
-              </h1>
-              <p style={{ fontSize: 13, color: 'var(--ink-light)' }}>{SUBTITLES[tab as Exclude<TabId, 'home'>]}</p>
-            </div>
-
-            {error && (
-              <div style={{ padding: '20px', background: 'var(--red-bg)', borderRadius: 10, color: 'var(--red)', fontSize: 13, border: `1px solid var(--red)` }}>
-                Could not load data: {error}
-              </div>
-            )}
-
-            {!error && (
-              <>
-                {tab === 'cards'       && <CardGrid      cards={cards}  loading={loading} setsMap={setsMap} />}
-                {tab === 'sets'        && <SetsTab        cards={cards}  setsData={setsData} loading={loading} setsMap={setsMap} />}
-                {tab === 'sealed'      && <SealedTab      setsData={setsData} loading={loading} />}
-                {tab === 'leaderboard' && <LeaderboardTab cards={cards}  loading={loading} setsMap={setsMap} setsData={setsData} />}
-              </>
-            )}
+            {tab === 'cards'       && <CardGrid      cards={cards}  loading={loading} setsMap={setsMap} />}
+            {tab === 'sets'        && <SetsTab        cards={cards}  setsData={setsData} loading={loading} setsMap={setsMap} />}
+            {tab === 'sealed'      && <SealedTab      setsData={setsData} loading={loading} />}
+            {tab === 'leaderboard' && <LeaderboardTab cards={cards}  loading={loading} setsMap={setsMap} setsData={setsData} />}
           </>
         )}
       </main>

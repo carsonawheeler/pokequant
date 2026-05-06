@@ -1,7 +1,7 @@
 export default function Logo() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-label="PokeQuant mark">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-label="CardQuant mark">
         <path
           d="M15 2 L26.5 8.5 V21.5 L15 28 L3.5 21.5 V8.5 Z"
           fill="var(--gold)" fillOpacity="0.12"
@@ -15,7 +15,7 @@ export default function Logo() {
       </svg>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
         <span style={{ fontFamily: 'var(--fd)', fontSize: 21, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-          Poke
+          Card
         </span>
         <span style={{ fontFamily: 'var(--fd)', fontSize: 21, color: 'var(--gold)', letterSpacing: '-0.01em', fontStyle: 'italic' }}>
           Quant

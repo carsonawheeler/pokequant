@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'PokeQuant — Pokemon TCG Analytics',
+  title: 'CardQuant — Pokemon TCG Analytics',
   description: 'Quantitative analytics and fair value predictions for Pokemon TCG collectors',
 }
 

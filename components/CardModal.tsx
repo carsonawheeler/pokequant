@@ -370,7 +370,7 @@ export default function CardModal({ card, setsMap, onClose }: CardModalProps) {
                       <div style={{ opacity: 0.85 }}>
                         A composite 0–10 signal combining Google Trends search interest,
                         14-day and 30-day price momentum, and competitive usage rates.
-                        Scores ≥7.5 indicate high demand.
+                        Scores ≥7.0 indicate high demand.
                       </div>
                     </div>
                   )}

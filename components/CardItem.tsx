@@ -45,7 +45,7 @@ function SignalTag({ card }: { card: Card }) {
 
 function DemBar({ score, noLabel }: { score: number | null, noLabel?: boolean }) {
   if (score == null) return null
-  const col = score >= 7.5 ? 'var(--gold)' : score >= 5 ? 'var(--ink-mid)' : 'var(--cborder)'
+  const col = score >= 7.0 ? 'var(--gold)' : score >= 4.0 ? 'var(--ink-mid)' : 'var(--cborder)'
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
       <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'var(--cborder)' }}>

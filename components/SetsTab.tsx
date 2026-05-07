@@ -43,6 +43,12 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
   const top5       = setCards.slice(0, 5)
   const totalValue = setCards.reduce((s, c) => s + (c.price ?? 0), 0)
 
+  // Cards with pull odds data
+  const cardsWithOdds = useMemo(() =>
+    setCards.filter(c => c.specific_card_odds != null && c.specific_card_odds > 0),
+    [setCards]
+  )
+
   useEffect(() => {
     const tcgIds = top5.map(c => c.tcg_id).filter(Boolean) as string[]
     if (tcgIds.length) {
@@ -72,11 +78,11 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
     s === 'UNDERVALUED' ? 'var(--green)' : s === 'OVERVALUED' ? 'var(--red)' : 'var(--ink-mid)'
 
   const dataCells = [
-    { label: 'ETB Price',   value: setRow.etbPrice  ? fmt(setRow.etbPrice)  : null, sub: setRow.is_special_set ? 'Primary sealed product' : undefined, highlight: !!setRow.etbPrice && !!setRow.is_special_set },
-    { label: 'Box Price',   value: setRow.boxPrice  ? fmt(setRow.boxPrice)  : null, sub: undefined, highlight: false },
-    { label: 'Pack Price',  value: setRow.packPrice ? fmt(setRow.packPrice) : null, sub: undefined, highlight: false },
-    { label: 'Median SIR',  value: setRow.median    ? fmt(setRow.median)    : null, sub: undefined, highlight: false },
-    { label: 'Total Value', value: totalValue > 0   ? fmt(totalValue)       : null, sub: undefined, highlight: false },
+    { label: 'ETB Price',      value: setRow.etbPrice  ? fmt(setRow.etbPrice)  : null, sub: setRow.is_special_set ? 'Primary sealed product' : undefined, highlight: !!setRow.etbPrice && !!setRow.is_special_set },
+    { label: 'Box Price',      value: setRow.boxPrice  ? fmt(setRow.boxPrice)  : null, sub: undefined, highlight: false },
+    { label: 'Pack Price',     value: setRow.packPrice ? fmt(setRow.packPrice) : null, sub: undefined, highlight: false },
+    { label: 'Avg SIR Price',  value: setRow.median    ? fmt(setRow.median)    : null, sub: undefined, highlight: false },
+    { label: 'Total Value',    value: totalValue > 0   ? fmt(totalValue)       : null, sub: undefined, highlight: false },
   ]
 
   return (
@@ -152,7 +158,7 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
         </div>
 
         {/* Top 5 leaderboard */}
-        <div className="modal-padding" style={{ padding: '16px 24px 24px' }}>
+        <div className="modal-padding" style={{ padding: '16px 24px 0' }}>
           <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 14 }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 10 }}>
               Top Cards by Market Price
@@ -246,6 +252,70 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
           </div>
         </div>
 
+        {/* Pull rates section */}
+        {cardsWithOdds.length > 0 && (
+          <div className="modal-padding" style={{ padding: '16px 24px 0' }}>
+            <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 14 }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 10 }}>
+                Pull Rates
+              </div>
+
+              {/* Group header — all cards in this modal are SIRs */}
+              <div style={{ marginBottom: 8 }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                  color: 'var(--gold)', marginBottom: 6,
+                }}>
+                  Special Illustration Rares
+                  {(() => {
+                    // Use shared odds if all cards have the same rate
+                    const odds = cardsWithOdds.map(c => c.specific_card_odds!)
+                    const allSame = odds.every(o => Math.abs(o - odds[0]) < 0.0001)
+                    return allSame
+                      ? <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}> · 1 in {Math.round(1 / odds[0])} packs</span>
+                      : null
+                  })()}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {cardsWithOdds.map(card => {
+                    const odds = card.specific_card_odds!
+                    const allSame = cardsWithOdds.every(c => Math.abs((c.specific_card_odds ?? 0) - (cardsWithOdds[0].specific_card_odds ?? 0)) < 0.0001)
+                    return (
+                      <div
+                        key={card.id}
+                        onClick={() => setSelectedCard(card)}
+                        style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '6px 10px', borderRadius: 7, background: 'var(--c2)',
+                          cursor: 'pointer', transition: 'background 0.12s',
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--cborder)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--c2)' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                          <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {card.card_name}
+                          </span>
+                          {!allSame && (
+                            <span style={{ fontSize: 10, color: 'var(--ink-light)', whiteSpace: 'nowrap' }}>
+                              1 in {Math.round(1 / odds)} packs
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontFamily: 'var(--fm)', fontSize: 13, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
+                          {fmt(card.price)}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ height: 24 }} />
+
       </div>
     </div>
 
@@ -263,7 +333,7 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
 // ── Main SetsTab ──────────────────────────────────────────────────────────────
 
 export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabProps) {
-  const [view,        setView]        = useState<'grid' | 'leaderboard'>('grid')
+  const [gridSort,    setGridSort]    = useState<'newest' | 'oldest'>('newest')
   const [query,       setQuery]       = useState('')
   const [selectedSet, setSelectedSet] = useState<SetRow | null>(null)
 
@@ -281,24 +351,18 @@ export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabPr
   }, [cards, setsData])
 
   const filtered = useMemo(() => {
-    let base: SetRow[]
-    if (view === 'leaderboard') {
-      base = [...rows].sort((a, b) => (b.median ?? 0) - (a.median ?? 0))
-    } else {
-      // Grid: sort newest-first by release_date, fall back to id
-      base = [...rows].sort((a, b) => {
-        const ad = a.release_date ?? ''
-        const bd = b.release_date ?? ''
-        if (!ad && !bd) return b.id - a.id
-        if (!ad) return 1
-        if (!bd) return -1
-        return bd.localeCompare(ad)
-      })
-    }
+    const base = [...rows].sort((a, b) => {
+      const ad = a.release_date ?? ''
+      const bd = b.release_date ?? ''
+      if (!ad && !bd) return b.id - a.id
+      if (!ad) return 1
+      if (!bd) return -1
+      return gridSort === 'newest' ? bd.localeCompare(ad) : ad.localeCompare(bd)
+    })
     if (!query.trim()) return base
     const q = query.trim().toLowerCase()
     return base.filter(s => s.set_name.toLowerCase().includes(q) || s.set_code.toLowerCase().includes(q))
-  }, [rows, view, query])
+  }, [rows, gridSort, query])
 
   if (loading) {
     return (
@@ -336,15 +400,16 @@ export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabPr
           />
         </div>
 
+        {/* Sort toggle */}
         <div style={{ display: 'flex', gap: 4, background: 'var(--c1)', border: '1px solid var(--cborder)', borderRadius: 8, padding: 3 }}>
-          {([{ id: 'grid', label: '⊞  Grid' }, { id: 'leaderboard', label: '↕  Leaderboard' }] as const).map(v => (
+          {([{ id: 'newest', label: 'Newest First' }, { id: 'oldest', label: 'Oldest First' }] as const).map(v => (
             <button
               key={v.id}
-              onClick={() => setView(v.id)}
+              onClick={() => setGridSort(v.id)}
               style={{
                 padding: '5px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-                background: view === v.id ? 'var(--ink)' : 'transparent',
-                color: view === v.id ? 'var(--c1)' : 'var(--ink-mid)',
+                background: gridSort === v.id ? 'var(--ink)' : 'transparent',
+                color: gridSort === v.id ? 'var(--c1)' : 'var(--ink-mid)',
                 transition: 'all 0.15s',
               }}
             >
@@ -354,167 +419,95 @@ export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabPr
         </div>
 
         <span style={{ fontSize: 11, color: 'var(--ink-light)' }}>
-          {filtered.length} sets{view === 'grid' ? ' · newest first' : ' · ranked by median SIR price'}
+          {filtered.length} sets · {gridSort === 'newest' ? 'newest first' : 'oldest first'}
         </span>
       </div>
 
       {/* GRID VIEW */}
-      {view === 'grid' && (
-        <div className="sets-grid">
-          {filtered.map(s => (
-            <div
-              key={s.id}
-              className="card-item"
-              onClick={() => setSelectedSet(s)}
-              style={{
-                background: 'var(--c1)', borderRadius: 12,
-                border: '1px solid var(--cborder)', overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(26,18,8,0.05)',
-                cursor: 'pointer',
-              }}
-            >
+      <div className="sets-grid">
+        {filtered.map(s => (
+          <div
+            key={s.id}
+            className="card-item"
+            onClick={() => setSelectedSet(s)}
+            style={{
+              background: 'var(--c1)', borderRadius: 12,
+              border: '1px solid var(--cborder)', overflow: 'hidden',
+              boxShadow: '0 2px 8px rgba(26,18,8,0.05)',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{
+              height: 100, position: 'relative', overflow: 'hidden',
+              borderBottom: '1px solid var(--cborder)',
+            }}>
+              {/* Blurred logo background */}
               <div style={{
-                height: 100, position: 'relative', overflow: 'hidden',
-                borderBottom: '1px solid var(--cborder)',
-              }}>
-                {/* Blurred logo background */}
-                <div style={{
-                  position: 'absolute', inset: -8,
-                  backgroundImage: `url(${s.logoUrl})`,
-                  backgroundSize: 'cover', backgroundPosition: 'center',
-                  filter: 'blur(14px) brightness(0.7) saturate(1.4)',
-                  transform: 'scale(1.12)',
-                }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
-                {/* Logo image */}
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 20px', zIndex: 1 }}>
-                  <img
-                    src={s.logoUrl}
-                    alt={s.set_name}
-                    loading="lazy"
-                    style={{ maxWidth: '100%', maxHeight: 72, objectFit: 'contain' }}
-                    onError={e => { e.currentTarget.style.display = 'none' }}
-                  />
-                </div>
+                position: 'absolute', inset: -8,
+                backgroundImage: `url(${s.logoUrl})`,
+                backgroundSize: 'cover', backgroundPosition: 'center',
+                filter: 'blur(14px) brightness(0.7) saturate(1.4)',
+                transform: 'scale(1.12)',
+              }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
+              {/* Logo image */}
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 20px', zIndex: 1 }}>
+                <img
+                  src={s.logoUrl}
+                  alt={s.set_name}
+                  loading="lazy"
+                  style={{ maxWidth: '100%', maxHeight: 72, objectFit: 'contain' }}
+                  onError={e => { e.currentTarget.style.display = 'none' }}
+                />
               </div>
+            </div>
 
-              <div style={{ padding: '10px 14px 13px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 3 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)', lineHeight: 1.25, flex: 1 }}>
-                    {s.set_name}
+            <div style={{ padding: '10px 14px 13px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 3 }}>
+                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)', lineHeight: 1.25, flex: 1 }}>
+                  {s.set_name}
+                </span>
+                {s.is_special_set && (
+                  <span style={{
+                    fontSize: 9, padding: '2px 7px', borderRadius: 20,
+                    background: 'var(--c2)', color: 'var(--gold)', fontWeight: 700,
+                    border: '1px solid var(--gold-l)', whiteSpace: 'nowrap',
+                  }}>
+                    Special
                   </span>
-                  {s.is_special_set && (
-                    <span style={{
-                      fontSize: 9, padding: '2px 7px', borderRadius: 20,
-                      background: 'var(--c2)', color: 'var(--gold)', fontWeight: 700,
-                      border: '1px solid var(--gold-l)', whiteSpace: 'nowrap',
-                    }}>
-                      Special
-                    </span>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginBottom: 10 }}>
+                {s.set_code?.toUpperCase()} · {s.sir_count} SIRs
+              </div>
+              <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 9, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div>
+                  {s.etbPrice != null ? (
+                    <>
+                      <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>ETB Price</div>
+                      <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: s.is_special_set ? 'var(--gold)' : 'var(--ink)' }}>{fmt(s.etbPrice)}</div>
+                    </>
+                  ) : s.boxPrice != null ? (
+                    <>
+                      <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Box Price</div>
+                      <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.boxPrice)}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Avg SIR Price</div>
+                      <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.median)}</div>
+                    </>
                   )}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginBottom: 10 }}>
-                  {s.set_code?.toUpperCase()} · {s.sir_count} SIRs
-                </div>
-                <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 9, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <div>
-                    {s.etbPrice != null ? (
-                      <>
-                        <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>ETB Price</div>
-                        <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: s.is_special_set ? 'var(--gold)' : 'var(--ink)' }}>{fmt(s.etbPrice)}</div>
-                      </>
-                    ) : s.boxPrice != null ? (
-                      <>
-                        <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Box Price</div>
-                        <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.boxPrice)}</div>
-                      </>
-                    ) : (
-                      <>
-                        <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Median SIR</div>
-                        <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.median)}</div>
-                      </>
-                    )}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Pack Price</div>
-                    <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink-mid)' }}>{fmt(s.packPrice)}</div>
-                  </div>
+                <div>
+                  <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Pack Price</div>
+                  <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink-mid)' }}>{fmt(s.packPrice)}</div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* LEADERBOARD VIEW */}
-      {view === 'leaderboard' && (
-        <div>
-          <div className="lb-head" style={{
-            display: 'grid',
-            gridTemplateColumns: '40px 48px 1fr 130px 110px 110px 110px 72px',
-            padding: '6px 16px', gap: 14, marginBottom: 6,
-            fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)',
-          }}>
-            <span>#</span><span></span><span>Set</span>
-            <span style={{ textAlign: 'right' }}>Avg SIR Price</span>
-            <span className="lb-box-header" style={{ textAlign: 'right' }}>Pack</span>
-            <span className="lb-box-header" style={{ textAlign: 'right' }}>Box</span>
-            <span className="lb-box-header" style={{ textAlign: 'right' }}>ETB</span>
-            <span />
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {filtered.map((s, i) => (
-              <div
-                key={s.id}
-                className="lb-row"
-                onClick={() => setSelectedSet(s)}
-                style={{
-                  background: 'var(--c1)', borderRadius: 10, padding: '11px 16px',
-                  border: '1px solid var(--cborder)',
-                  display: 'grid',
-                  gridTemplateColumns: '40px 48px 1fr 130px 110px 110px 110px 72px',
-                  alignItems: 'center', gap: 14,
-                  boxShadow: '0 1px 4px rgba(26,18,8,0.04)',
-                  cursor: 'pointer',
-                }}
-              >
-                <span style={{ fontFamily: 'var(--fm)', fontSize: 13, fontWeight: i < 3 ? 700 : 400, color: i < 3 ? 'var(--gold)' : 'var(--ink-light)' }}>
-                  {i + 1}
-                </span>
-                <div style={{ width: 48, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img
-                    src={s.logoUrl}
-                    alt={s.set_name}
-                    loading="lazy"
-                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                    onError={e => { e.currentTarget.style.display = 'none' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)' }}>{s.set_name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 1 }}>
-                    {s.set_code?.toUpperCase()} · {s.sir_count} SIRs
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{fmt(s.median)}</div>
-                <div className="lb-box-cell" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: 'var(--ink-mid)' }}>{fmt(s.packPrice)}</div>
-                <div className="lb-box-cell" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: 'var(--ink-mid)' }}>{fmt(s.boxPrice)}</div>
-                <div className="lb-box-cell" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, color: s.etbPrice && s.is_special_set ? 'var(--gold)' : 'var(--ink-mid)' }}>{fmt(s.etbPrice)}</div>
-                <div className="lb-badge-cell" style={{ textAlign: 'right' }}>
-                  {s.is_special_set && (
-                    <span style={{
-                      fontSize: 9, padding: '2px 7px', borderRadius: 20,
-                      background: 'var(--c2)', color: 'var(--gold)', fontWeight: 700,
-                      border: '1px solid var(--gold-l)',
-                    }}>Special</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        ))}
+      </div>
 
       {/* Set detail modal */}
       {selectedSet && (

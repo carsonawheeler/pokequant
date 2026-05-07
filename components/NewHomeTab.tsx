@@ -32,7 +32,7 @@ const FEATURES: { tab: NavTab; title: string; desc: string; arrow: string; icon:
   {
     tab: 'sets',
     title: 'Sets',
-    desc: 'Browse every Pokémon set from Base Set to the latest releases. Track set performance, pull rates, and sealed-to-singles spreads in one place.',
+    desc: 'Pull rates, top cards by value, and sealed product prices for all 16 SV sets.',
     arrow: 'Explore sets',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -49,7 +49,7 @@ const FEATURES: { tab: NavTab; title: string; desc: string; arrow: string; icon:
   {
     tab: 'cards',
     title: 'Cards',
-    desc: 'Real-time prices for individual cards across all grades and printings. Drill into bid/ask spreads, sales history, and volatility metrics.',
+    desc: 'ML fair value predictions, demand scores, and PSA 10 grading ROI for every tracked SV era card.',
     arrow: 'Search cards',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
@@ -63,7 +63,7 @@ const FEATURES: { tab: NavTab; title: string; desc: string; arrow: string; icon:
   {
     tab: 'sealed',
     title: 'Sealed',
-    desc: 'Monitor booster box, ETB, and tin prices across the secondary market. Track sealed product as an asset class with historical ROI data.',
+    desc: 'Booster box, ETB, and pack price tracking with 30-day price history.',
     arrow: 'View sealed',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -77,7 +77,7 @@ const FEATURES: { tab: NavTab; title: string; desc: string; arrow: string; icon:
   {
     tab: 'leaderboard',
     title: 'Leaderboard',
-    desc: "See who's winning the market. Top collectors, best-performing portfolios, and the biggest movers ranked in real time.",
+    desc: 'Rank cards by price momentum, PSA 10 ROI, and sales volume across TCGPlayer and eBay.',
     arrow: 'See rankings',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -231,7 +231,7 @@ export default function NewHomeTab({ onNavigate }: { onNavigate: (tab: NavTab) =
       const [cardsRes, setsRes, maxDateRes, dailyRes] = await Promise.all([
         supabase.from('cards').select('id', { count: 'exact', head: true })
           .in('rarity_group', ['SIR', 'IR', 'Ultra', 'Hyper', 'Double Rare']),
-        supabase.from('sets').select('id', { count: 'exact', head: true }),
+        supabase.from('sets').select('id', { count: 'exact', head: true }).eq('era', 'SV'),
         supabase.from('card_ebay_snapshots').select('snapshot_date')
           .order('snapshot_date', { ascending: false }).limit(1),
         supabase.from('card_price_snapshots').select('id', { count: 'exact', head: true })
@@ -439,7 +439,7 @@ export default function NewHomeTab({ onNavigate }: { onNavigate: (tab: NavTab) =
             <span className={styles.accent}>Own the Metrics</span>
           </h1>
           <p className={styles.heroSub}>
-            Real-time price discovery, volatility modeling, and market analytics — built for serious collectors and investors.
+            Real-time price tracking, PSA grading ROI, and ML fair value predictions for Pokemon TCG cards. Updated every morning.
           </p>
         </div>
 

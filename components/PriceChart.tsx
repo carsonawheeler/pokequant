@@ -213,8 +213,7 @@ export default function PriceChart({ data, gradedData, ebayData, showToggle }: P
       {/* ── Line toggles ─────────────────────────────────────────────────────── */}
       {showToggle && (
         <div style={{ display: 'flex', gap: 3, marginBottom: 10, flexWrap: 'wrap' }}>
-          {(['tcg', 'ebay_raw', 'psa9', 'psa10'] as LineKey[]).map(key => {
-            if (key === 'ebay_raw' && (!hasData.ebay_raw || isEbayFlat)) return null
+          {(['tcg', 'psa9', 'psa10'] as LineKey[]).map(key => {
             const isOn   = active.has(key)
             const noData = !hasData[key]
             const btnCol = BTN_COLORS[key]

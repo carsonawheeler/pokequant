@@ -11,7 +11,7 @@ import SealedTab from './SealedTab'
 
 type Entity      = 'cards' | 'sets' | 'sealed'
 type CardSort    = 'momentum' | 'psa10_roi' | 'ebay_sales' | 'tcg_sales' | 'combined_sales'
-type SetSortMode = 'premium_score' | 'avg_sir' | 'box_change'
+type SetSortMode = 'avg_sir' | 'box_change'
 
 interface LatestEbaySnap {
   grading_roi_psa10:      number | null
@@ -35,9 +35,8 @@ const CARD_SORTS: { id: CardSort; label: string }[] = [
 ]
 
 const SET_SORTS: { id: SetSortMode; label: string }[] = [
-  { id: 'premium_score', label: 'Set Premium Score' },
-  { id: 'avg_sir',       label: 'Avg SIR Price' },
-  { id: 'box_change',    label: '30d Price Change' },
+  { id: 'avg_sir',    label: 'Avg SIR Price' },
+  { id: 'box_change', label: '30d Price Change' },
 ]
 
 // Returns number = valid %, 'insufficient' = < 25d span, null = no data
@@ -60,7 +59,7 @@ function computeBoxChange30d(snaps: SetPriceSnapshot[]): number | 'insufficient'
 export default function LeaderboardTab({ cards, loading, setsMap, setsData }: LeaderboardTabProps) {
   const [entity,         setEntity]         = useState<Entity>('cards')
   const [cardSort,       setCardSort]       = useState<CardSort>('momentum')
-  const [setSort,        setSetSort]        = useState<SetSortMode>('premium_score')
+  const [setSort,        setSetSort]        = useState<SetSortMode>('avg_sir')
   const [query,          setQuery]          = useState('')
   const [selectedCard,   setSelectedCard]   = useState<Card | null>(null)
   const [selectedSetRow, setSelectedSetRow] = useState<SetRow | null>(null)
@@ -124,9 +123,8 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
   const rankedSetRows = useMemo(() => {
     const base = [...setRows]
     switch (setSort) {
-      case 'premium_score': return base.sort((a, b) => (b.set_premium_score ?? 0) - (a.set_premium_score ?? 0))
-      case 'avg_sir':       return base.sort((a, b) => (b.median ?? 0) - (a.median ?? 0))
-      case 'box_change':    return base.sort((a, b) => {
+      case 'avg_sir':    return base.sort((a, b) => (b.median ?? 0) - (a.median ?? 0))
+      case 'box_change': return base.sort((a, b) => {
         const av = computeBoxChange30d(a.set_price_snapshots ?? [])
         const bv = computeBoxChange30d(b.set_price_snapshots ?? [])
         return (typeof bv === 'number' ? bv : -999) - (typeof av === 'number' ? av : -999)

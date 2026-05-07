@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Card, SetData, ModelPrediction } from '@/lib/types'
+import { Card, SetData, ModelPrediction, SetPriceSnapshot } from '@/lib/types'
 import { fmt } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { MomBadge } from './CardItem'
 import CardModal from './CardModal'
+import SealedProductModal, { ProductTab, computeChange, ChangeBadge } from './SealedProductModal'
 
 // ── Static pull rate lookup — sourced from pull_rates_by_set.csv ──────────────
 // rate = "1 in X packs" for any card of that rarity (pull_rate_1_in_x_packs)
@@ -66,6 +67,7 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
 }) {
   const [predictions,   setPredictions]   = useState<Record<string, ModelPrediction>>({})
   const [selectedCard,  setSelectedCard]  = useState<Card | null>(null)
+  const [sealedFocus,   setSealedFocus]   = useState<ProductTab | null>(null)
 
   const setCards = useMemo(() =>
     cards
@@ -355,6 +357,54 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
           </div>
         )}
 
+        {/* Sealed Products — clickable cards that open price history */}
+        {(setRow.boxPrice != null || setRow.etbPrice != null || setRow.packPrice != null) && (
+          <div className="modal-padding" style={{ padding: '16px 24px 0' }}>
+            <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 14 }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 10 }}>
+                Sealed Products · Price History
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {(
+                  [
+                    { tab: 'box'  as ProductTab, label: 'Booster Box',      price: setRow.boxPrice,  key: 'booster_box_market_price' as keyof SetPriceSnapshot },
+                    { tab: 'etb'  as ProductTab, label: 'Elite Trainer Box', price: setRow.etbPrice,  key: 'etb_market_price'         as keyof SetPriceSnapshot },
+                    { tab: 'pack' as ProductTab, label: 'Booster Pack',      price: setRow.packPrice, key: 'pack_market_price'        as keyof SetPriceSnapshot },
+                  ] as { tab: ProductTab; label: string; price: number | null; key: keyof SetPriceSnapshot }[]
+                ).map(({ tab, label, price, key }) => {
+                  if (price == null) return null
+                  const snaps    = setRow.set_price_snapshots ?? []
+                  const change30 = computeChange(snaps, key)
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => setSealedFocus(tab)}
+                      style={{
+                        background: 'var(--c2)', border: '1px solid var(--cborder)',
+                        borderRadius: 9, padding: '10px 12px', textAlign: 'left' as const,
+                        cursor: 'pointer', transition: 'border-color 0.12s',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--gold)' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--cborder)' }}
+                    >
+                      <div style={{ fontSize: 9.5, color: 'var(--ink-light)', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>
+                        {label}
+                      </div>
+                      <div style={{ fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>
+                        {fmt(price)}
+                      </div>
+                      <ChangeBadge change={change30} />
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ fontSize: 9.5, color: 'var(--ink-light)', marginTop: 7 }}>
+                Click any product to view price history chart
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{ height: 24 }} />
 
       </div>
@@ -365,6 +415,19 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
           card={selectedCard}
           setsMap={setsMap}
           onClose={() => setSelectedCard(null)}
+        />
+      )}
+
+      {sealedFocus && (
+        <SealedProductModal
+          setName={setRow.set_name}
+          setCode={setRow.set_code}
+          era={setRow.era}
+          isSpecialSet={setRow.is_special_set}
+          logoUrl={setRow.logoUrl}
+          snapshots={setRow.set_price_snapshots ?? []}
+          focusProduct={sealedFocus}
+          onClose={() => setSealedFocus(null)}
         />
       )}
     </>

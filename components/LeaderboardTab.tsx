@@ -68,6 +68,18 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
   const [dataLoading,    setDataLoading]    = useState(false)
   const [dataFetched,    setDataFetched]    = useState(false)
   const [premiumTip,     setPremiumTip]     = useState(false)
+  const [cols,           setCols]           = useState(5)
+
+  // Responsive column count — matches CardGrid breakpoints
+  useEffect(() => {
+    function update() {
+      const w = window.innerWidth
+      setCols(w < 480 ? 2 : w < 640 ? 3 : w < 900 ? 4 : 5)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   // Reset search when switching entities
   useEffect(() => { setQuery('') }, [entity])
@@ -274,7 +286,7 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
           </div>
 
           {/* Search */}
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
             <div style={{ flex: '1 1 200px', position: 'relative' }}>
               <svg
                 style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.4 }}
@@ -299,54 +311,99 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
             {dataLoading && <span style={{ fontSize: 11, color: 'var(--ink-light)' }}>Loading data…</span>}
           </div>
 
-          {/* Column headers */}
-          <div className="lb-card-head" style={{
-            display: 'grid', gridTemplateColumns: '36px 56px 1fr 130px 120px',
-            padding: '5px 16px', gap: 14, marginBottom: 5,
-            fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)',
-          }}>
-            <span /><span /><span>Card</span>
-            <span style={{ textAlign: 'right' }}>{CARD_SORTS.find(m => m.id === cardSort)?.label}</span>
-            <span className="lb-card-price-col" style={{ textAlign: 'right' }}>Price</span>
-          </div>
-
-          {/* Card rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Card grid — same layout as Cards tab */}
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 13 }}>
             {rankedCards.map((card, i) => {
               const metric = getCardMetric(card)
+              const imgH = cols <= 2 ? 160 : cols === 3 ? 200 : cols === 4 ? 240 : 210
+              const isTop3 = i < 3
               return (
                 <div
                   key={card.id}
-                  className="lb-card-row"
+                  className="card-item fadeup"
                   onClick={() => setSelectedCard(card)}
                   style={{
-                    background: 'var(--c1)', borderRadius: 10, padding: '10px 16px',
-                    border: '1px solid var(--cborder)',
-                    display: 'grid', gridTemplateColumns: '36px 56px 1fr 130px 120px',
-                    alignItems: 'center', gap: 14,
-                    boxShadow: '0 1px 4px rgba(26,18,8,0.04)', cursor: 'pointer',
+                    background: 'var(--c1)', borderRadius: 12,
+                    border: '1px solid var(--cborder)', overflow: 'hidden',
+                    boxShadow: '0 2px 8px rgba(26,18,8,0.05)',
+                    display: 'flex', flexDirection: 'column', cursor: 'pointer',
                   }}
                 >
-                  <span style={{ fontSize: 11, fontFamily: 'var(--fm)', color: 'var(--ink-light)' }}>#{i + 1}</span>
-                  <div style={{ width: 56, height: 76 }}>
+                  {/* Image area */}
+                  <div style={{
+                    height: imgH, flexShrink: 0, position: 'relative',
+                    borderBottom: '1px solid var(--cborder)', overflow: 'hidden',
+                    background: 'var(--c2)',
+                  }}>
+                    {card.image_url && (
+                      <div style={{
+                        position: 'absolute', inset: -8,
+                        backgroundImage: `url(${card.image_url})`,
+                        backgroundSize: 'cover', backgroundPosition: 'center top',
+                        filter: 'blur(14px) brightness(0.7) saturate(1.4)',
+                        transform: 'scale(1.12)',
+                      }} />
+                    )}
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.28)' }} />
+                    {/* Rank badge */}
+                    <div style={{
+                      position: 'absolute', top: 6, left: 6, zIndex: 2,
+                      fontFamily: 'var(--fm)', fontWeight: 700,
+                      fontSize: cols <= 2 ? 10 : 12,
+                      color: isTop3 ? 'var(--gold)' : 'rgba(255,255,255,0.80)',
+                      background: 'rgba(26,18,8,0.60)',
+                      padding: '2px 7px', borderRadius: 20,
+                    }}>
+                      #{i + 1}
+                    </div>
                     {card.image_url
-                      ? <img src={card.image_url} alt={card.card_name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                      : <div style={{ width: '100%', height: '100%', background: 'var(--c2)', borderRadius: 4 }} />
+                      ? (
+                        <img
+                          src={card.image_url}
+                          alt={card.card_name}
+                          loading="lazy"
+                          style={{
+                            position: 'absolute', inset: 0, zIndex: 1,
+                            height: '100%', width: '100%',
+                            objectFit: 'contain', padding: '6px 4px',
+                          }}
+                        />
+                      )
+                      : (
+                        <span style={{
+                          position: 'absolute', inset: 0, zIndex: 1,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, color: 'var(--ink-light)',
+                        }}>
+                          {card.character_name}
+                        </span>
+                      )
                     }
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>{card.card_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-light)' }}>{card.set?.set_name}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{
-                      fontFamily: 'var(--fm)', fontWeight: 700, fontSize: 18,
-                      color: cardMetricColor(metric), letterSpacing: '-0.02em',
-                    }}>{metric.value}</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink-light)', marginTop: 2 }}>{metric.sub}</div>
-                  </div>
-                  <div className="lb-card-price-col" style={{ textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>
-                    {fmt(card.price)}
+
+                  {/* Info area */}
+                  <div style={{ padding: '8px 11px 11px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--ink)', lineHeight: 1.2, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {card.card_name}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: 'var(--ink-light)', marginBottom: 7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {card.set?.set_name}
+                    </div>
+                    <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 7, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: metric.value !== '—' ? 5 : 0 }}>
+                      <span style={{ fontFamily: 'var(--fm)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+                        {fmt(card.price)}
+                      </span>
+                    </div>
+                    {metric.value !== '—' && (
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                        <span style={{ fontFamily: 'var(--fm)', fontSize: 12, fontWeight: 600, color: cardMetricColor(metric) }}>
+                          {metric.value}
+                        </span>
+                        <span style={{ fontSize: 9.5, color: 'var(--ink-light)' }}>
+                          {metric.sub}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )

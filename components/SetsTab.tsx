@@ -476,20 +476,20 @@ export default function SetsTab({ cards, setsData, loading, setsMap }: SetsTabPr
             }}>
               {/* Blurred logo background */}
               <div style={{
-                position: 'absolute', inset: -8,
+                position: 'absolute', inset: -16,
                 backgroundImage: `url(${s.logoUrl})`,
-                backgroundSize: 'cover', backgroundPosition: 'center',
-                filter: 'blur(14px) brightness(0.7) saturate(1.4)',
-                transform: 'scale(1.12)',
+                backgroundSize: '130%', backgroundPosition: 'center',
+                filter: 'blur(18px) brightness(0.65) saturate(1.5)',
+                transform: 'scale(1.15)',
               }} />
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
               {/* Logo image */}
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 20px', zIndex: 1 }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 10px', zIndex: 1 }}>
                 <img
                   src={s.logoUrl}
                   alt={s.set_name}
                   loading="lazy"
-                  style={{ maxWidth: '100%', maxHeight: 72, objectFit: 'contain' }}
+                  style={{ maxWidth: '100%', maxHeight: 90, objectFit: 'contain' }}
                   onError={e => { e.currentTarget.style.display = 'none' }}
                 />
               </div>

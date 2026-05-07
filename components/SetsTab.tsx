@@ -7,6 +7,40 @@ import { supabase } from '@/lib/supabase'
 import { MomBadge } from './CardItem'
 import CardModal from './CardModal'
 
+// ── Static pull rate lookup — sourced from pull_rates_by_set.csv ──────────────
+// rate = "1 in X packs" for any card of that rarity (pull_rate_1_in_x_packs)
+// count = number of cards in that rarity slot
+type RarityPullData = { rate: number; count: number }
+const PULL_RATE_TABLE: Record<string, Partial<Record<string, RarityPullData>>> = {
+  sv1:      { 'Special Illustration Rare': { rate: 31.7, count: 10 }, 'Hyper Rare': { rate: 54.1, count: 6 },  'Illustration Rare': { rate: 13.0, count: 24 }, 'Ultra Rare': { rate: 15.2, count: 20 }, 'Double Rare': { rate: 7.3, count: 12 } },
+  sv2:      { 'Special Illustration Rare': { rate: 31.5, count: 15 }, 'Hyper Rare': { rate: 56.8, count: 9 },  'Illustration Rare': { rate: 13.0, count: 36 }, 'Ultra Rare': { rate: 15.1, count: 26 }, 'Double Rare': { rate: 7.3, count: 17 } },
+  sv3:      { 'Special Illustration Rare': { rate: 31.9, count: 6  }, 'Hyper Rare': { rate: 52.1, count: 3 },  'Illustration Rare': { rate: 13.2, count: 12 }, 'Ultra Rare': { rate: 15.1, count: 12 }, 'Double Rare': { rate: 7.3, count: 21 } },
+  sv3pt5:   { 'Special Illustration Rare': { rate: 32.2, count: 7  }, 'Hyper Rare': { rate: 51.5, count: 3 },  'Illustration Rare': { rate: 11.8, count: 16 }, 'Ultra Rare': { rate: 15.5, count: 16 }, 'Double Rare': { rate: 7.5, count: 12 } },
+  sv4:      { 'Special Illustration Rare': { rate: 47.4, count: 15 }, 'Hyper Rare': { rate: 82.0, count: 7 },  'Illustration Rare': { rate: 13.0, count: 34 }, 'Ultra Rare': { rate: 15.1, count: 28 }, 'Double Rare': { rate: 6.4, count: 20 } },
+  sv4pt5:   { 'Special Illustration Rare': { rate: 58.1, count: 8  }, 'Hyper Rare': { rate: 62.1, count: 6 },  'Illustration Rare': { rate: 13.9, count: 3  }, 'Ultra Rare': { rate: 15.1, count: 5  }, 'Double Rare': { rate: 6.3, count: 10 } },
+  sv5:      { 'Special Illustration Rare': { rate: 85.5, count: 10 }, 'Hyper Rare': { rate: 138.9, count: 6 }, 'Illustration Rare': { rate: 13.0, count: 22 }, 'Ultra Rare': { rate: 15.0, count: 18 }, 'Double Rare': { rate: 5.9, count: 15 } },
+  sv6:      { 'Special Illustration Rare': { rate: 85.5, count: 11 }, 'Hyper Rare': { rate: 147.1, count: 6 }, 'Illustration Rare': { rate: 12.9, count: 21 }, 'Ultra Rare': { rate: 15.1, count: 21 }, 'Double Rare': { rate: 5.9, count: 14 } },
+  sv6pt5:   { 'Special Illustration Rare': { rate: 87.2, count: 5  }, 'Hyper Rare': { rate: 128.3, count: 5 }, 'Illustration Rare': { rate: 13.0, count: 15 }, 'Ultra Rare': { rate: 14.3, count: 10 }, 'Double Rare': { rate: 6.0, count: 6  } },
+  sv7:      { 'Special Illustration Rare': { rate: 90.1, count: 6  }, 'Hyper Rare': { rate: 137.0, count: 3 }, 'Illustration Rare': { rate: 12.8, count: 13 }, 'Ultra Rare': { rate: 14.8, count: 11 }, 'Double Rare': { rate: 5.9, count: 14 } },
+  sv8:      { 'Special Illustration Rare': { rate: 87.0, count: 11 }, 'Hyper Rare': { rate: 188.7, count: 6 }, 'Illustration Rare': { rate: 13.0, count: 23 }, 'Ultra Rare': { rate: 14.8, count: 21 }, 'Double Rare': { rate: 5.9, count: 18 } },
+  sv8pt5:   { 'Special Illustration Rare': { rate: 45.0, count: 32 }, 'Hyper Rare': { rate: 178.6, count: 5 },                                                  'Ultra Rare': { rate: 13.4, count: 12 }, 'Double Rare': { rate: 6.1, count: 25 } },
+  sv9:      { 'Special Illustration Rare': { rate: 86.2, count: 6  }, 'Hyper Rare': { rate: 137.0, count: 3 }, 'Illustration Rare': { rate: 11.8, count: 11 }, 'Ultra Rare': { rate: 15.3, count: 11 }, 'Double Rare': { rate: 4.9, count: 16 } },
+  sv10:     { 'Special Illustration Rare': { rate: 94.3, count: 11 }, 'Hyper Rare': { rate: 149.3, count: 6 }, 'Illustration Rare': { rate: 12.1, count: 23 }, 'Ultra Rare': { rate: 15.6, count: 22 }, 'Double Rare': { rate: 5.0, count: 17 } },
+  // Japanese dual-set releases — no Hyper Rare slot (uses Black White Rare instead)
+  zsv10pt5: { 'Special Illustration Rare': { rate: 80.0, count: 7  },                                          'Illustration Rare': { rate: 6.1,  count: 69 }, 'Ultra Rare': { rate: 17.2, count: 8  }, 'Double Rare': { rate: 4.7, count: 6  } },
+  rsv10pt5: { 'Special Illustration Rare': { rate: 80.0, count: 7  },                                          'Illustration Rare': { rate: 6.1,  count: 70 }, 'Ultra Rare': { rate: 17.2, count: 8  }, 'Double Rare': { rate: 4.7, count: 6  } },
+}
+
+// Special sets come in ETBs (~9 packs), not standard booster boxes (36 packs)
+const SPECIAL_SET_CODES = new Set(['sv3pt5', 'sv4pt5', 'sv6pt5', 'sv8pt5', 'rsv10pt5', 'zsv10pt5'])
+const TRACKED_RARITIES = [
+  'Special Illustration Rare',
+  'Illustration Rare',
+  'Hyper Rare',
+  'Ultra Rare',
+  'Double Rare',
+]
+
 interface SetsTabProps {
   cards: Card[]
   setsData: SetData[]
@@ -32,7 +66,6 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
 }) {
   const [predictions,   setPredictions]   = useState<Record<string, ModelPrediction>>({})
   const [selectedCard,  setSelectedCard]  = useState<Card | null>(null)
-  const [pullRates,     setPullRates]     = useState<{ rarity: string; card_count: number; avg_odds: number }[]>([])
 
   const setCards = useMemo(() =>
     cards
@@ -44,13 +77,18 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
   const top5       = setCards.slice(0, 5)
   const totalValue = setCards.reduce((s, c) => s + (c.price ?? 0), 0)
 
-  const TRACKED_RARITIES = [
-    'Special Illustration Rare',
-    'Illustration Rare',
-    'Hyper Rare',
-    'Ultra Rare',
-    'Double Rare',
-  ]
+  // Pull rates from static lookup — covers all SV era sets with complete data
+  const isSpecialSet = SPECIAL_SET_CODES.has(setRow.set_code ?? '')
+  const packsPerProduct = isSpecialSet ? 9 : 36
+  const productLabel    = isSpecialSet ? 'Per ETB (9 packs)' : 'Per Box (36 packs)'
+
+  const pullRates = useMemo(() => {
+    const setData = PULL_RATE_TABLE[setRow.set_code ?? '']
+    if (!setData) return []
+    return TRACKED_RARITIES
+      .filter(r => setData[r] != null)
+      .map(r => ({ rarity: r, ...setData[r]! }))
+  }, [setRow.set_code])
 
   useEffect(() => {
     const tcgIds = top5.map(c => c.tcg_id).filter(Boolean) as string[]
@@ -70,33 +108,6 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
           setPredictions(map)
         })
     }
-
-    // Fetch pull rate data grouped by rarity for this set
-    supabase
-      .from('cards')
-      .select('rarity, specific_card_odds')
-      .eq('set_id', setRow.id)
-      .in('rarity', TRACKED_RARITIES)
-      .not('specific_card_odds', 'is', null)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .then(({ data }) => {
-        if (!data?.length) return
-        const grouped: Record<string, { sum: number; count: number }> = {}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const card of data as { rarity: string; specific_card_odds: number }[]) {
-          if (!grouped[card.rarity]) grouped[card.rarity] = { sum: 0, count: 0 }
-          grouped[card.rarity].sum += card.specific_card_odds
-          grouped[card.rarity].count += 1
-        }
-        const rows = TRACKED_RARITIES
-          .filter(r => grouped[r])
-          .map(r => ({
-            rarity: r,
-            card_count: grouped[r].count,
-            avg_odds: grouped[r].sum / grouped[r].count,
-          }))
-        setPullRates(rows)
-      })
 
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', esc)
@@ -294,24 +305,23 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
               <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--cborder)' }}>
                 {/* Header */}
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 100px 90px',
+                  display: 'grid', gridTemplateColumns: '1fr 90px 100px',
                   background: 'var(--ink)', padding: '7px 12px', gap: 8,
                   fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.6)',
                 }}>
                   <span>Rarity</span>
                   <span style={{ textAlign: 'right' }}>Any Card</span>
-                  <span style={{ textAlign: 'right' }}>Per Box</span>
+                  <span style={{ textAlign: 'right' }}>{productLabel}</span>
                 </div>
 
                 {/* Rows */}
                 {pullRates.map((row, i) => {
-                  const rarityRate  = row.avg_odds / row.card_count   // packs per any card of this rarity
-                  const perBox      = 36 / rarityRate                  // cards per box
+                  const perProduct = packsPerProduct / row.rate
                   return (
                     <div
                       key={row.rarity}
                       style={{
-                        display: 'grid', gridTemplateColumns: '1fr 100px 90px',
+                        display: 'grid', gridTemplateColumns: '1fr 90px 100px',
                         padding: '9px 12px', gap: 8, alignItems: 'center',
                         background: i % 2 === 0 ? 'var(--c2)' : 'var(--c1)',
                         borderTop: '1px solid var(--cborder)',
@@ -319,19 +329,17 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
                     >
                       <div>
                         <div style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{row.rarity}</div>
-                        <div style={{ fontSize: 10, color: 'var(--ink-light)', marginTop: 1 }}>
-                          1 in {Math.round(row.avg_odds).toLocaleString()} per card
-                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--ink-light)', marginTop: 1 }}>{row.count} cards</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontFamily: 'var(--fm)', color: 'var(--ink-mid)', fontSize: 12 }}>
-                          1 in {Math.round(rarityRate).toLocaleString()}
+                          1 in {Math.round(row.rate).toLocaleString()}
                         </div>
                         <div style={{ fontSize: 9.5, color: 'var(--ink-light)', marginTop: 1 }}>packs</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontFamily: 'var(--fm)', color: 'var(--gold)', fontWeight: 600, fontSize: 13 }}>
-                          {perBox < 0.1 ? perBox.toFixed(2) : perBox.toFixed(1)}
+                          {perProduct < 0.1 ? perProduct.toFixed(2) : perProduct.toFixed(1)}
                         </div>
                         <div style={{ fontSize: 9.5, color: 'var(--ink-light)', marginTop: 1 }}>cards</div>
                       </div>
@@ -341,7 +349,7 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
               </div>
 
               <div style={{ fontSize: 9.5, color: 'var(--ink-light)', marginTop: 7, lineHeight: 1.4 }}>
-                Based on standard 36-pack booster box · Specific card odds assume equal weight within rarity
+                Odds shown are for pulling any card of that rarity. Individual card odds depend on the number of cards in the rarity slot for this set.
               </div>
             </div>
           </div>

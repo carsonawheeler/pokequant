@@ -27,17 +27,18 @@ const SUBTITLES: Record<Exclude<TabId, 'home'>, string> = {
 }
 
 export default function Home() {
-  const [tab,      setTab]      = useState<TabId>('home')
-  const [cards,    setCards]    = useState<Card[]>([])
-  const [setsData, setSetsData] = useState<SetData[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [error,    setError]    = useState<string | null>(null)
+  const [tab,        setTab]        = useState<TabId>('home')
+  const [cards,      setCards]      = useState<Card[]>([])
+  const [setsData,   setSetsData]   = useState<SetData[]>([])
+  const [sealedData, setSealedData] = useState<SetData[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [error,      setError]      = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
       try {
-        // Parallel: cards + sets
-        const [cardsRes, setsRes] = await Promise.all([
+        // Parallel: cards + SV sets + all-era sealed sets
+        const [cardsRes, setsRes, sealedRes] = await Promise.all([
           supabase
             .from('cards')
             .select(`
@@ -63,10 +64,20 @@ export default function Home() {
             `)
             .eq('era', 'SV')
             .order('id'),
+
+          supabase
+            .from('sets')
+            .select(`
+              id, set_name, set_code, era, sir_count, is_special_set,
+              release_date, set_premium_score, logo_url,
+              set_price_snapshots(pack_market_price, booster_box_market_price, etb_market_price, bundle_price, collection_box_price, snapshot_date)
+            `)
+            .order('id'),
         ])
 
-        if (cardsRes.error) throw new Error(cardsRes.error.message)
-        if (setsRes.error)  throw new Error(setsRes.error.message)
+        if (cardsRes.error)   throw new Error(cardsRes.error.message)
+        if (setsRes.error)    throw new Error(setsRes.error.message)
+        if (sealedRes.error)  throw new Error(sealedRes.error.message)
 
         // Filter SV era cards, build card ID list
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,6 +160,25 @@ export default function Home() {
         }))
         setSetsData(shapedSets)
 
+        // Shape all-era sealed sets (includes SWSH, SV, ME, etc.)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const shapedSealed: SetData[] = (sealedRes.data ?? []).map((s: any) => ({
+          id:                s.id,
+          set_name:          s.set_name,
+          set_code:          s.set_code,
+          era:               s.era,
+          sir_count:         s.sir_count ?? null,
+          is_special_set:    s.is_special_set ?? null,
+          release_date:      s.release_date ?? null,
+          set_premium_score: s.set_premium_score ?? null,
+          logo_url:          s.logo_url ?? null,
+          set_price_snapshots: [...(s.set_price_snapshots ?? [])].sort(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (a: any, b: any) => b.snapshot_date.localeCompare(a.snapshot_date)
+          ),
+        }))
+        setSealedData(shapedSealed)
+
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
       } finally {
@@ -202,7 +232,7 @@ export default function Home() {
           <>
             {tab === 'cards'       && <CardGrid      cards={cards}  loading={loading} setsMap={setsMap} />}
             {tab === 'sets'        && <SetsTab        cards={cards}  setsData={setsData} loading={loading} setsMap={setsMap} />}
-            {tab === 'sealed'      && <SealedTab      setsData={setsData} loading={loading} />}
+            {tab === 'sealed'      && <SealedTab      setsData={sealedData} loading={loading} />}
             {tab === 'leaderboard' && <LeaderboardTab cards={cards}  loading={loading} setsMap={setsMap} setsData={setsData} />}
           </>
         )}

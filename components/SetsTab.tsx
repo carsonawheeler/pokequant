@@ -32,6 +32,7 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
 }) {
   const [predictions,   setPredictions]   = useState<Record<string, ModelPrediction>>({})
   const [selectedCard,  setSelectedCard]  = useState<Card | null>(null)
+  const [pullRates,     setPullRates]     = useState<{ rarity: string; card_count: number; avg_odds: number }[]>([])
 
   const setCards = useMemo(() =>
     cards
@@ -43,11 +44,13 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
   const top5       = setCards.slice(0, 5)
   const totalValue = setCards.reduce((s, c) => s + (c.price ?? 0), 0)
 
-  // Cards with pull odds data
-  const cardsWithOdds = useMemo(() =>
-    setCards.filter(c => c.specific_card_odds != null && c.specific_card_odds > 0),
-    [setCards]
-  )
+  const TRACKED_RARITIES = [
+    'Special Illustration Rare',
+    'Illustration Rare',
+    'Hyper Rare',
+    'Ultra Rare',
+    'Double Rare',
+  ]
 
   useEffect(() => {
     const tcgIds = top5.map(c => c.tcg_id).filter(Boolean) as string[]
@@ -67,6 +70,33 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
           setPredictions(map)
         })
     }
+
+    // Fetch pull rate data grouped by rarity for this set
+    supabase
+      .from('cards')
+      .select('rarity, specific_card_odds')
+      .eq('set_id', setRow.id)
+      .in('rarity', TRACKED_RARITIES)
+      .not('specific_card_odds', 'is', null)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then(({ data }) => {
+        if (!data?.length) return
+        const grouped: Record<string, { sum: number; count: number }> = {}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const card of data as { rarity: string; specific_card_odds: number }[]) {
+          if (!grouped[card.rarity]) grouped[card.rarity] = { sum: 0, count: 0 }
+          grouped[card.rarity].sum += card.specific_card_odds
+          grouped[card.rarity].count += 1
+        }
+        const rows = TRACKED_RARITIES
+          .filter(r => grouped[r])
+          .map(r => ({
+            rarity: r,
+            card_count: grouped[r].count,
+            avg_odds: grouped[r].sum / grouped[r].count,
+          }))
+        setPullRates(rows)
+      })
 
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', esc)
@@ -221,7 +251,7 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
                           )}
                           {pullOdds != null && pullOdds > 0 && (
                             <span style={{ fontSize: 9.5, color: 'var(--ink-light)' }}>
-                              1 in {Math.round(1 / pullOdds)} packs
+                              1 in {Math.round(pullOdds).toLocaleString()} packs
                             </span>
                           )}
                         </div>
@@ -252,63 +282,66 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
           </div>
         </div>
 
-        {/* Pull rates section */}
-        {cardsWithOdds.length > 0 && (
+        {/* Pull rates table */}
+        {pullRates.length > 0 && (
           <div className="modal-padding" style={{ padding: '16px 24px 0' }}>
             <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 14 }}>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-light)', marginBottom: 10 }}>
                 Pull Rates
               </div>
 
-              {/* Group header — all cards in this modal are SIRs */}
-              <div style={{ marginBottom: 8 }}>
+              {/* Table */}
+              <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--cborder)' }}>
+                {/* Header */}
                 <div style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                  color: 'var(--gold)', marginBottom: 6,
+                  display: 'grid', gridTemplateColumns: '1fr 100px 90px',
+                  background: 'var(--ink)', padding: '7px 12px', gap: 8,
+                  fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.6)',
                 }}>
-                  Special Illustration Rares
-                  {(() => {
-                    // Use shared odds if all cards have the same rate
-                    const odds = cardsWithOdds.map(c => c.specific_card_odds!)
-                    const allSame = odds.every(o => Math.abs(o - odds[0]) < 0.0001)
-                    return allSame
-                      ? <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}> · 1 in {Math.round(1 / odds[0])} packs</span>
-                      : null
-                  })()}
+                  <span>Rarity</span>
+                  <span style={{ textAlign: 'right' }}>Any Card</span>
+                  <span style={{ textAlign: 'right' }}>Per Box</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {cardsWithOdds.map(card => {
-                    const odds = card.specific_card_odds!
-                    const allSame = cardsWithOdds.every(c => Math.abs((c.specific_card_odds ?? 0) - (cardsWithOdds[0].specific_card_odds ?? 0)) < 0.0001)
-                    return (
-                      <div
-                        key={card.id}
-                        onClick={() => setSelectedCard(card)}
-                        style={{
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          padding: '6px 10px', borderRadius: 7, background: 'var(--c2)',
-                          cursor: 'pointer', transition: 'background 0.12s',
-                        }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--cborder)' }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--c2)' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                          <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {card.card_name}
-                          </span>
-                          {!allSame && (
-                            <span style={{ fontSize: 10, color: 'var(--ink-light)', whiteSpace: 'nowrap' }}>
-                              1 in {Math.round(1 / odds)} packs
-                            </span>
-                          )}
+
+                {/* Rows */}
+                {pullRates.map((row, i) => {
+                  const rarityRate  = row.avg_odds / row.card_count   // packs per any card of this rarity
+                  const perBox      = 36 / rarityRate                  // cards per box
+                  return (
+                    <div
+                      key={row.rarity}
+                      style={{
+                        display: 'grid', gridTemplateColumns: '1fr 100px 90px',
+                        padding: '9px 12px', gap: 8, alignItems: 'center',
+                        background: i % 2 === 0 ? 'var(--c2)' : 'var(--c1)',
+                        borderTop: '1px solid var(--cborder)',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{row.rarity}</div>
+                        <div style={{ fontSize: 10, color: 'var(--ink-light)', marginTop: 1 }}>
+                          1 in {Math.round(row.avg_odds).toLocaleString()} per card
                         </div>
-                        <span style={{ fontFamily: 'var(--fm)', fontSize: 13, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
-                          {fmt(card.price)}
-                        </span>
                       </div>
-                    )
-                  })}
-                </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontFamily: 'var(--fm)', color: 'var(--ink-mid)', fontSize: 12 }}>
+                          1 in {Math.round(rarityRate).toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: 9.5, color: 'var(--ink-light)', marginTop: 1 }}>packs</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontFamily: 'var(--fm)', color: 'var(--gold)', fontWeight: 600, fontSize: 13 }}>
+                          {perBox < 0.1 ? perBox.toFixed(2) : perBox.toFixed(1)}
+                        </div>
+                        <div style={{ fontSize: 9.5, color: 'var(--ink-light)', marginTop: 1 }}>cards</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div style={{ fontSize: 9.5, color: 'var(--ink-light)', marginTop: 7, lineHeight: 1.4 }}>
+                Based on standard 36-pack booster box · Specific card odds assume equal weight within rarity
               </div>
             </div>
           </div>

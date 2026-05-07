@@ -45,12 +45,13 @@ function SignalTag({ card }: { card: Card }) {
 
 function DemBar({ score, noLabel }: { score: number | null, noLabel?: boolean }) {
   if (score == null) return null
-  const col = score >= 7.0 ? 'var(--gold)' : score >= 4.0 ? 'var(--ink-mid)' : 'var(--cborder)'
+  const col = score >= 7.0 ? 'var(--green)' : score >= 4.0 ? 'var(--gold)' : 'var(--red)'
+  const pct = Math.max(2, (score / 10) * 100)
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
       <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'var(--cborder)' }}>
         <div style={{
-          width: `${(score / 10) * 100}%`, height: '100%', borderRadius: 2,
+          width: `${pct}%`, minWidth: 4, height: '100%', borderRadius: 2,
           background: col, transition: 'width 0.5s ease',
         }} />
       </div>

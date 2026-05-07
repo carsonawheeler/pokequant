@@ -228,14 +228,18 @@ export default function NewHomeTab({ onNavigate }: { onNavigate: (tab: NavTab) =
     const today = new Date().toISOString().slice(0, 10)
 
     async function loadStats() {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+
       const [cardsRes, setsRes, maxDateRes, dailyRes] = await Promise.all([
-        supabase.from('cards').select('id', { count: 'exact', head: true })
-          .in('rarity_group', ['SIR', 'IR', 'Ultra', 'Hyper', 'Double Rare']),
+        // Count only cards with active model predictions (the 168 tracked SIRs)
+        supabase.from('model_predictions').select('card_id', { count: 'exact', head: true })
+          .eq('model_version', 'sir_v2'),
         supabase.from('sets').select('id', { count: 'exact', head: true }).eq('era', 'SV'),
         supabase.from('card_ebay_snapshots').select('snapshot_date')
           .order('snapshot_date', { ascending: false }).limit(1),
+        // Yesterday's price snapshots (non-zero; today's run fires overnight)
         supabase.from('card_price_snapshots').select('id', { count: 'exact', head: true })
-          .eq('snapshot_date', today),
+          .eq('snapshot_date', yesterday),
       ])
 
       const maxDate = (maxDateRes.data as { snapshot_date: string }[] | null)?.[0]?.snapshot_date ?? null
@@ -372,7 +376,7 @@ export default function NewHomeTab({ onNavigate }: { onNavigate: (tab: NavTab) =
     { key: 'cards',        label: 'Cards Tracked'     },
     { key: 'sets',         label: 'Sets Covered'      },
     { key: 'ebaySales',    label: 'eBay Sales Recorded' },
-    { key: 'dailyUpdates', label: 'Daily Updates'     },
+    { key: 'dailyUpdates', label: "Yesterday's Updates" },
   ]
 
   // ── Render ─────────────────────────────────────────────────────────────

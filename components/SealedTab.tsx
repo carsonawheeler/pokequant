@@ -1,121 +1,188 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { SetData } from '@/lib/types'
+import { useState, useMemo, useEffect } from 'react'
+import { SetData, SetPriceSnapshot } from '@/lib/types'
 import { fmt } from '@/lib/utils'
 import SealedProductModal, {
   ProductTab, ChangeResult, ChangeBadge, computeChange,
 } from './SealedProductModal'
 
-type EraFilter = 'all' | 'sv' | 'swsh'
+// 'all' extends ProductTab for the filter
+type ProductFilter = 'all' | ProductTab
+type EraFilter     = 'all' | 'sv' | 'swsh'
 
-interface SealedRow extends SetData {
-  latestBox:  number | null
-  latestEtb:  number | null
-  latestPack: number | null
-  boxChange:  ChangeResult
-  etbChange:  ChangeResult
-  packChange: ChangeResult
-  logoUrl:    string
-  etbOnly:    boolean
+// One card = one specific product (e.g. "Fusion Strike Booster Box")
+interface ProductCard {
+  key:          string         // `${setId}_${productType}`
+  productType:  ProductTab
+  productLabel: string         // "Booster Box" / "Elite Trainer Box" / "Booster Pack"
+  setId:        number
+  setName:      string
+  setCode:      string | null
+  era:          string | null
+  isSpecialSet: boolean | number | null
+  logoUrl:      string
+  currentPrice: number
+  change30d:    ChangeResult
+  snapshots:    SetPriceSnapshot[]   // newest-first, forwarded to modal
 }
 
-function getPrice(row: SealedRow, tab: ProductTab): number | null {
-  return tab === 'box' ? row.latestBox : tab === 'etb' ? row.latestEtb : row.latestPack
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const PRICE_KEY: Record<ProductTab, keyof SetPriceSnapshot> = {
+  box:  'booster_box_market_price',
+  etb:  'etb_market_price',
+  pack: 'pack_market_price',
 }
 
-function getChange(row: SealedRow, tab: ProductTab): ChangeResult {
-  return tab === 'box' ? row.boxChange : tab === 'etb' ? row.etbChange : row.packChange
+const PRODUCT_LABELS: Record<ProductTab, string> = {
+  box:  'Booster Box',
+  etb:  'Elite Trainer Box',
+  pack: 'Booster Pack',
 }
 
-// ── Ranked list row ───────────────────────────────────────────────────────────
+const PILL: Record<ProductTab, { bg: string; color: string; label: string }> = {
+  box:  { bg: '#2d7dd2',     color: '#fff', label: 'BOX'  },
+  etb:  { bg: 'var(--gold)', color: '#fff', label: 'ETB'  },
+  pack: { bg: '#2a9d6e',     color: '#fff', label: 'PACK' },
+}
 
-function RankedRow({ row, rank, productTab, onClick }: {
-  row: SealedRow
-  rank: number
-  productTab: ProductTab
+const PRODUCT_TYPES: ProductTab[] = ['box', 'etb', 'pack']
+
+const FILTER_TABS: { id: ProductFilter; label: string }[] = [
+  { id: 'all',  label: 'All'         },
+  { id: 'box',  label: 'Booster Box' },
+  { id: 'etb',  label: 'ETB'         },
+  { id: 'pack', label: 'Pack'        },
+]
+
+const ERA_FILTERS: { id: EraFilter; label: string }[] = [
+  { id: 'all',  label: 'All'  },
+  { id: 'sv',   label: 'SV'   },
+  { id: 'swsh', label: 'SWSH' },
+]
+
+// ── Responsive columns ────────────────────────────────────────────────────────
+
+function useCols() {
+  const [cols, setCols] = useState(5)
+  useEffect(() => {
+    function update() {
+      const w = window.innerWidth
+      setCols(w < 480 ? 2 : w < 640 ? 3 : w < 900 ? 4 : 5)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+  return cols
+}
+
+// ── Product card ──────────────────────────────────────────────────────────────
+
+function SealedCard({ card, cols, onClick }: {
+  card:    ProductCard
+  cols:    number
   onClick: () => void
 }) {
-  const price  = getPrice(row, productTab)
-  const change = getChange(row, productTab)
+  const imgH = cols <= 2 ? 80 : cols === 3 ? 100 : 110
+  const pill = PILL[card.productType]
 
   return (
     <div
-      className="card-item"
+      className="card-item fadeup"
       onClick={onClick}
       style={{
-        display: 'grid',
-        gridTemplateColumns: '36px 52px 1fr auto auto',
-        alignItems: 'center', gap: 12,
-        padding: '11px 16px',
-        background: 'var(--c1)', borderRadius: 10,
-        border: '1px solid var(--cborder)',
-        cursor: 'pointer', transition: 'background 0.12s',
+        background: 'var(--c1)', borderRadius: 12,
+        border: '1px solid var(--cborder)', overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(26,18,8,0.05)',
+        display: 'flex', flexDirection: 'column', cursor: 'pointer',
       }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--c2)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--c1)' }}
     >
-      {/* Rank */}
-      <span style={{
-        fontFamily: 'var(--fm)', fontSize: 12, textAlign: 'center',
-        color: rank <= 3 ? 'var(--gold)' : 'var(--ink-light)',
-        fontWeight: rank <= 3 ? 700 : 400,
+      {/* Logo with blurred background */}
+      <div style={{
+        height: imgH, flexShrink: 0, position: 'relative',
+        borderBottom: '1px solid var(--cborder)', overflow: 'hidden',
+        background: 'var(--c2)',
       }}>
-        #{rank}
-      </span>
+        {card.logoUrl && (
+          <div style={{
+            position: 'absolute', inset: -8,
+            backgroundImage: `url(${card.logoUrl})`,
+            backgroundSize: '130%', backgroundPosition: 'center',
+            filter: 'blur(18px) brightness(0.65) saturate(1.5)',
+            transform: 'scale(1.15)',
+          }} />
+        )}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
 
-      {/* Logo thumbnail */}
-      <div style={{ width: 52, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img
-          src={row.logoUrl}
-          alt={row.set_name}
-          loading="lazy"
-          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-          onError={e => { e.currentTarget.style.opacity = '0' }}
-        />
+        {/* Centered logo */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '6px 10px',
+        }}>
+          <img
+            src={card.logoUrl}
+            alt={card.setName}
+            loading="lazy"
+            style={{ maxWidth: '100%', maxHeight: imgH - 18, objectFit: 'contain' }}
+            onError={e => { e.currentTarget.style.opacity = '0' }}
+          />
+        </div>
+
+        {/* Product type pill — top-right */}
+        <span style={{
+          position: 'absolute', top: 6, right: 7, zIndex: 2,
+          fontSize: 9, padding: '2px 6px', borderRadius: 8,
+          background: pill.bg, color: pill.color,
+          fontWeight: 700, letterSpacing: '0.05em',
+        }}>
+          {pill.label}
+        </span>
       </div>
 
-      {/* Name + meta */}
-      <div style={{ minWidth: 0 }}>
+      {/* Info */}
+      <div style={{ padding: '8px 11px 11px', display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div style={{
-          fontWeight: 600, fontSize: 13, color: 'var(--ink)', lineHeight: 1.25,
+          fontWeight: 600, fontSize: 12, color: 'var(--ink)', lineHeight: 1.2,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          marginBottom: 1,
+        }}>
+          {card.setName}
+        </div>
+        <div style={{
+          fontSize: 10, color: 'var(--ink-light)', marginBottom: 6,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
-          {row.set_name}
+          {card.productLabel}
         </div>
-        <div style={{ display: 'flex', gap: 4, marginTop: 3, flexWrap: 'wrap' as const }}>
-          <span style={{ fontSize: 9.5, color: 'var(--ink-light)', fontFamily: 'var(--fm)' }}>
-            {row.set_code?.toUpperCase()}
-          </span>
-          {row.era === 'SV' && (
-            <span style={{ fontSize: 9, padding: '0px 5px', borderRadius: 8, background: '#fde8e8', color: 'var(--red)', fontWeight: 700 }}>SV</span>
-          )}
-          {row.era === 'SWSH' && (
-            <span style={{ fontSize: 9, padding: '0px 5px', borderRadius: 8, background: '#e8f1fb', color: '#2d7dd2', fontWeight: 700 }}>SWSH</span>
-          )}
-          {!!row.is_special_set && (
-            <span style={{ fontSize: 9, padding: '0px 5px', borderRadius: 8, background: '#fdf4dc', color: 'var(--gold)', fontWeight: 700 }}>Special</span>
-          )}
-          {row.etbOnly && productTab !== 'etb' && (
-            <span style={{
-              fontSize: 9, padding: '0px 5px', borderRadius: 8,
-              background: 'var(--c2)', color: 'var(--ink-light)', fontWeight: 600,
-              border: '1px solid var(--cborder)',
-            }}>ETB Only</span>
-          )}
-        </div>
-      </div>
 
-      {/* 30d change */}
-      <ChangeBadge change={change} />
-
-      {/* Price */}
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{
-          fontFamily: 'var(--fm)', fontSize: 17, fontWeight: 600,
-          color: 'var(--ink)', letterSpacing: '-0.02em',
+          borderTop: '1px solid var(--cborder)', paddingTop: 6,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 5,
         }}>
-          {fmt(price)}
+          <span style={{
+            fontFamily: 'var(--fm)', fontSize: 17, fontWeight: 600,
+            color: 'var(--ink)', letterSpacing: '-0.02em',
+          }}>
+            {fmt(card.currentPrice)}
+          </span>
+          <ChangeBadge change={card.change30d} />
+        </div>
+
+        {/* Era + Special badges */}
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const }}>
+          {card.era === 'SV' && (
+            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 10, background: '#fde8e8', color: 'var(--red)', fontWeight: 700 }}>SV</span>
+          )}
+          {card.era === 'SWSH' && (
+            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 10, background: '#e8f1fb', color: '#2d7dd2', fontWeight: 700 }}>SWSH</span>
+          )}
+          {!!card.isSpecialSet && (
+            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 10, background: '#fdf4dc', color: 'var(--gold)', fontWeight: 700 }}>Special</span>
+          )}
         </div>
       </div>
     </div>
@@ -124,38 +191,22 @@ function RankedRow({ row, rank, productTab, onClick }: {
 
 // ── Loading skeleton ──────────────────────────────────────────────────────────
 
-function ListSkel() {
+function SealedSkel({ cols }: { cols: number }) {
+  const imgH = cols <= 2 ? 80 : cols === 3 ? 100 : 110
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '36px 52px 1fr auto auto',
-      alignItems: 'center', gap: 12, padding: '11px 16px',
-      background: 'var(--c1)', borderRadius: 10, border: '1px solid var(--cborder)',
-    }}>
-      <div className="shimmer" style={{ height: 14, width: 28, borderRadius: 4 }} />
-      <div className="shimmer" style={{ height: 38, width: 52, borderRadius: 4 }} />
-      <div>
-        <div className="shimmer" style={{ height: 13, width: '60%', marginBottom: 6 }} />
-        <div className="shimmer" style={{ height: 10, width: '30%' }} />
+    <div style={{ background: 'var(--c1)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--cborder)' }}>
+      <div className="shimmer" style={{ height: imgH }} />
+      <div style={{ padding: '10px 12px 14px' }}>
+        <div className="shimmer" style={{ height: 13, width: '75%', marginBottom: 4 }} />
+        <div className="shimmer" style={{ height: 10, width: '40%', marginBottom: 12 }} />
+        <div className="shimmer" style={{ height: 22, width: '55%', marginBottom: 6 }} />
+        <div className="shimmer" style={{ height: 10, width: '45%' }} />
       </div>
-      <div className="shimmer" style={{ height: 16, width: 50, borderRadius: 10 }} />
-      <div className="shimmer" style={{ height: 18, width: 60, borderRadius: 4 }} />
     </div>
   )
 }
 
 // ── Main SealedTab ────────────────────────────────────────────────────────────
-
-const PRODUCT_TABS: { id: ProductTab; label: string }[] = [
-  { id: 'box',  label: 'Booster Box' },
-  { id: 'etb',  label: 'ETB' },
-  { id: 'pack', label: 'Pack' },
-]
-
-const ERA_FILTERS: { id: EraFilter; label: string }[] = [
-  { id: 'all',  label: 'All' },
-  { id: 'sv',   label: 'SV' },
-  { id: 'swsh', label: 'SWSH' },
-]
 
 interface SealedTabProps {
   setsData: SetData[]
@@ -163,58 +214,80 @@ interface SealedTabProps {
 }
 
 export default function SealedTab({ setsData, loading }: SealedTabProps) {
-  const [productTab, setProductTab] = useState<ProductTab>('box')
-  const [eraFilter,  setEraFilter]  = useState<EraFilter>('all')
-  const [query,      setQuery]      = useState('')
-  const [selected,   setSelected]   = useState<{ row: SealedRow; tab: ProductTab } | null>(null)
+  const [productFilter, setProductFilter] = useState<ProductFilter>('all')
+  const [eraFilter,     setEraFilter]     = useState<EraFilter>('all')
+  const [query,         setQuery]         = useState('')
+  const [selected,      setSelected]      = useState<ProductCard | null>(null)
+  const cols = useCols()
 
-  const rows = useMemo<SealedRow[]>(() =>
-    setsData
-      .filter(s => (s.set_price_snapshots?.length ?? 0) > 0)
-      .map(s => {
-        const snaps = s.set_price_snapshots ?? []  // newest-first
-        return {
-          ...s,
-          latestBox:  snaps[0]?.booster_box_market_price ?? null,
-          latestEtb:  snaps[0]?.etb_market_price ?? null,
-          latestPack: snaps[0]?.pack_market_price ?? null,
-          boxChange:  computeChange(snaps, 'booster_box_market_price'),
-          etbChange:  computeChange(snaps, 'etb_market_price'),
-          packChange: computeChange(snaps, 'pack_market_price'),
-          logoUrl:    s.logo_url ?? `https://images.pokemontcg.io/${s.set_code}/logo.png`,
-          etbOnly:    (snaps[0]?.booster_box_market_price ?? null) === null,
-        }
-      }),
-    [setsData]
-  )
+  // Explode sets × product types into individual product cards
+  const allCards = useMemo<ProductCard[]>(() => {
+    const cards: ProductCard[] = []
+    for (const s of setsData) {
+      const snaps = s.set_price_snapshots ?? []   // newest-first
+      if (snaps.length === 0) continue
+      const logoUrl = s.logo_url ?? `https://images.pokemontcg.io/${s.set_code}/logo.png`
+
+      for (const pt of PRODUCT_TYPES) {
+        const key       = PRICE_KEY[pt]
+        const price     = snaps[0]?.[key] as number | null
+        if (price == null) continue   // this set has no data for this product type
+
+        const change30d = computeChange(snaps, key)
+        cards.push({
+          key:          `${s.id}_${pt}`,
+          productType:  pt,
+          productLabel: PRODUCT_LABELS[pt],
+          setId:        s.id,
+          setName:      s.set_name,
+          setCode:      s.set_code,
+          era:          s.era,
+          isSpecialSet: s.is_special_set,
+          logoUrl,
+          currentPrice: price,
+          change30d,
+          snapshots:    snaps,
+        })
+      }
+    }
+    return cards
+  }, [setsData])
 
   const filtered = useMemo(() => {
-    let base = rows.filter(r => getPrice(r, productTab) != null)
+    let base = [...allCards]
 
-    if (eraFilter === 'sv')   base = base.filter(r => r.era === 'SV')
-    if (eraFilter === 'swsh') base = base.filter(r => r.era === 'SWSH')
+    // Product type filter
+    if (productFilter !== 'all') base = base.filter(c => c.productType === productFilter)
 
+    // Era filter
+    if (eraFilter === 'sv')   base = base.filter(c => c.era === 'SV')
+    if (eraFilter === 'swsh') base = base.filter(c => c.era === 'SWSH')
+
+    // Search
     if (query.trim()) {
       const q = query.trim().toLowerCase()
-      base = base.filter(r =>
-        r.set_name.toLowerCase().includes(q) ||
-        (r.set_code ?? '').toLowerCase().includes(q)
+      base = base.filter(c =>
+        c.setName.toLowerCase().includes(q) ||
+        (c.setCode ?? '').toLowerCase().includes(q) ||
+        c.productLabel.toLowerCase().includes(q)
       )
     }
 
-    return base.sort((a, b) => (getPrice(b, productTab) ?? 0) - (getPrice(a, productTab) ?? 0))
-  }, [rows, productTab, eraFilter, query])
+    // Sort by price descending
+    return base.sort((a, b) => b.currentPrice - a.currentPrice)
+  }, [allCards, productFilter, eraFilter, query])
 
   if (loading) {
     return (
       <div>
+        {/* Tab shimmer */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
-          {PRODUCT_TABS.map(t => (
+          {FILTER_TABS.map(t => (
             <div key={t.id} className="shimmer" style={{ height: 36, width: 110, borderRadius: 20 }} />
           ))}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {Array.from({ length: 12 }).map((_, i) => <ListSkel key={i} />)}
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 13 }}>
+          {Array.from({ length: cols * 3 }).map((_, i) => <SealedSkel key={i} cols={cols} />)}
         </div>
       </div>
     )
@@ -222,14 +295,14 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
 
   return (
     <div>
-      {/* Product type tabs */}
+      {/* Product filter tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        {PRODUCT_TABS.map(t => {
-          const active = productTab === t.id
+        {FILTER_TABS.map(t => {
+          const active = productFilter === t.id
           return (
             <button
               key={t.id}
-              onClick={() => setProductTab(t.id)}
+              onClick={() => setProductFilter(t.id)}
               style={{
                 padding: '7px 18px', borderRadius: 20, fontSize: 13, fontWeight: 600,
                 background: active ? 'var(--ink)' : 'var(--c1)',
@@ -274,7 +347,7 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search sets…"
+            placeholder="Search sets or products…"
             style={{
               width: '100%', padding: '7px 12px 7px 32px',
               background: 'var(--c1)', border: '1px solid var(--cborder)',
@@ -286,19 +359,18 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
         </div>
 
         <span style={{ fontSize: 11, color: 'var(--ink-light)', whiteSpace: 'nowrap' }}>
-          {filtered.length} set{filtered.length !== 1 ? 's' : ''} · sorted by price
+          {filtered.length} product{filtered.length !== 1 ? 's' : ''} · by price
         </span>
       </div>
 
-      {/* Ranked list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-        {filtered.map((row, i) => (
-          <RankedRow
-            key={row.id}
-            row={row}
-            rank={i + 1}
-            productTab={productTab}
-            onClick={() => setSelected({ row, tab: productTab })}
+      {/* Product grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 13 }}>
+        {filtered.map(card => (
+          <SealedCard
+            key={card.key}
+            card={card}
+            cols={cols}
+            onClick={() => setSelected(card)}
           />
         ))}
       </div>
@@ -316,13 +388,13 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
 
       {selected && (
         <SealedProductModal
-          setName={selected.row.set_name}
-          setCode={selected.row.set_code}
-          era={selected.row.era}
-          isSpecialSet={selected.row.is_special_set}
-          logoUrl={selected.row.logoUrl}
-          snapshots={selected.row.set_price_snapshots ?? []}
-          focusProduct={selected.tab}
+          setName={selected.setName}
+          setCode={selected.setCode}
+          era={selected.era}
+          isSpecialSet={selected.isSpecialSet}
+          logoUrl={selected.logoUrl}
+          snapshots={selected.snapshots}
+          focusProduct={selected.productType}
           onClose={() => setSelected(null)}
         />
       )}

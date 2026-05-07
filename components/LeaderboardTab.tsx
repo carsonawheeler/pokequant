@@ -67,7 +67,6 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
   const [tcgSalesMap,    setTcgSalesMap]    = useState<Record<string, number>>({})
   const [dataLoading,    setDataLoading]    = useState(false)
   const [dataFetched,    setDataFetched]    = useState(false)
-  const [premiumTip,     setPremiumTip]     = useState(false)
   const [cols,           setCols]           = useState(5)
 
   // Responsive column count — matches CardGrid breakpoints
@@ -431,113 +430,103 @@ export default function LeaderboardTab({ cards, loading, setsMap, setsData }: Le
             ))}
           </div>
 
-          {/* Column headers */}
-          <div className="lb-set-head" style={{
-            display: 'grid', gridTemplateColumns: '36px 48px 1fr 90px 120px 100px',
-            padding: '5px 16px', gap: 14, marginBottom: 5,
-            fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)',
-          }}>
-            <span>#</span><span /><span>Set</span>
-            <span className="lb-premium-col" style={{ textAlign: 'right', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
-              Premium
-              <span style={{ position: 'relative', display: 'inline-flex' }}>
-                <button
-                  onClick={() => setPremiumTip(v => !v)}
-                  onBlur={() => setPremiumTip(false)}
-                  style={{
-                    width: 13, height: 13, borderRadius: '50%',
-                    background: 'var(--cborder)', color: 'var(--ink-mid)',
-                    fontSize: 8, fontWeight: 700, lineHeight: 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    textTransform: 'none', letterSpacing: 0,
-                  }}
-                  aria-label="About Set Premium Score"
-                >ⓘ</button>
-                {premiumTip && (
-                  <div style={{
-                    position: 'absolute', bottom: 18, right: 0,
-                    background: 'var(--ink)', color: 'var(--c1)',
-                    borderRadius: 8, padding: '10px 12px', fontSize: 11,
-                    width: 240, lineHeight: 1.5, zIndex: 50,
-                    boxShadow: '0 8px 24px rgba(26,18,8,0.25)',
-                    textTransform: 'none', letterSpacing: 'normal',
-                  }}>
-                    <div style={{ fontWeight: 700, marginBottom: 5 }}>Set Premium Score</div>
-                    <div style={{ opacity: 0.85 }}>
-                      Reflects a set&apos;s overall cultural significance and collector demand. Higher scores mean the set commands a premium — driven by iconic Pokémon, artwork quality, and long-term collectibility. Scores decay slowly over time as sets age.
-                    </div>
-                  </div>
-                )}
-              </span>
-            </span>
-            <span style={{ textAlign: 'right' }}>Avg SIR Price</span>
-            <span style={{ textAlign: 'right' }}>Box 30d</span>
-          </div>
-
-          {/* Set rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Set card grid — same layout as Cards leaderboard */}
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 13 }}>
             {rankedSetRows.map((s, i) => {
-              const boxChange = computeBoxChange30d(s.set_price_snapshots ?? [])
+              const isTop3     = i < 3
+              const boxChange  = computeBoxChange30d(s.set_price_snapshots ?? [])
+              const imgH       = cols <= 2 ? 100 : cols === 3 ? 120 : cols === 4 ? 130 : 120
+
+              // Metric value + label + color for active sort
+              let metricValue: string
+              let metricLabel: string
+              let metricColor: string
+              if (setSort === 'avg_sir') {
+                metricValue = s.median != null ? fmt(s.median)! : '—'
+                metricLabel = 'Avg SIR Price'
+                metricColor = 'var(--ink)'
+              } else {
+                if (typeof boxChange === 'number') {
+                  metricValue = `${boxChange >= 0 ? '▲' : '▼'} ${Math.abs(boxChange).toFixed(1)}%`
+                  metricLabel = '30-day change'
+                  metricColor = boxChange >= 0 ? 'var(--green)' : 'var(--red)'
+                } else {
+                  metricValue = '—'
+                  metricLabel = boxChange === 'insufficient' ? '< 30d data' : '30-day change'
+                  metricColor = 'var(--ink-light)'
+                }
+              }
+
               return (
                 <div
                   key={s.id}
-                  className="lb-set-row"
+                  className="card-item fadeup"
                   onClick={() => setSelectedSetRow(s)}
                   style={{
-                    background: 'var(--c1)', borderRadius: 10, padding: '10px 16px',
-                    border: '1px solid var(--cborder)',
-                    display: 'grid', gridTemplateColumns: '36px 48px 1fr 90px 120px 100px',
-                    alignItems: 'center', gap: 14,
-                    boxShadow: '0 1px 4px rgba(26,18,8,0.04)', cursor: 'pointer',
+                    background: 'var(--c1)', borderRadius: 12,
+                    border: '1px solid var(--cborder)', overflow: 'hidden',
+                    boxShadow: '0 2px 8px rgba(26,18,8,0.05)',
+                    display: 'flex', flexDirection: 'column', cursor: 'pointer',
                   }}
                 >
-                  <span style={{
-                    fontSize: 11, fontFamily: 'var(--fm)',
-                    color: i < 3 ? 'var(--gold)' : 'var(--ink-light)',
-                    fontWeight: i < 3 ? 700 : 400,
-                  }}>#{i + 1}</span>
-
-                  <div style={{ width: 48, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img
-                      src={s.logoUrl} alt={s.set_name} loading="lazy"
-                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                      onError={e => { e.currentTarget.style.display = 'none' }}
-                    />
-                  </div>
-
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)' }}>{s.set_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 1 }}>
-                      {s.set_code?.toUpperCase()}
-                      {s.is_special_set && <span style={{ marginLeft: 6, color: 'var(--gold)', fontWeight: 700 }}>· Special</span>}
+                  {/* Logo image area — same blur treatment as Sets tab */}
+                  <div style={{
+                    height: imgH, flexShrink: 0, position: 'relative',
+                    borderBottom: '1px solid var(--cborder)', overflow: 'hidden',
+                    background: 'var(--c2)',
+                  }}>
+                    <div style={{
+                      position: 'absolute', inset: -16,
+                      backgroundImage: `url(${s.logoUrl})`,
+                      backgroundSize: '130%', backgroundPosition: 'center',
+                      filter: 'blur(18px) brightness(0.65) saturate(1.5)',
+                      transform: 'scale(1.15)',
+                    }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 10px', zIndex: 1 }}>
+                      <img
+                        src={s.logoUrl}
+                        alt={s.set_name}
+                        loading="lazy"
+                        style={{ maxWidth: '100%', maxHeight: imgH - 16, objectFit: 'contain' }}
+                        onError={e => { e.currentTarget.style.display = 'none' }}
+                      />
                     </div>
                   </div>
 
-                  <div className="lb-premium-col" style={{
-                    textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, fontWeight: 500,
-                    color: s.set_premium_score != null ? 'var(--ink)' : 'var(--cborder)',
-                  }}>
-                    {s.set_premium_score != null ? s.set_premium_score.toFixed(1) : '—'}
-                  </div>
-
-                  <div style={{
-                    textAlign: 'right', fontFamily: 'var(--fm)', fontSize: 14, fontWeight: 500,
-                    color: s.median ? 'var(--ink)' : 'var(--cborder)',
-                  }}>
-                    {fmt(s.median)}
-                  </div>
-
-                  <div style={{ textAlign: 'right' }}>
-                    {typeof boxChange === 'number' ? (
+                  {/* Info area */}
+                  <div style={{ padding: '8px 11px 11px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    {/* Rank + set name */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 2 }}>
                       <span style={{
-                        fontFamily: 'var(--fm)', fontSize: 13, fontWeight: 600,
-                        color: boxChange >= 0 ? 'var(--green)' : 'var(--red)',
+                        fontFamily: 'var(--fm)', fontWeight: 800,
+                        fontSize: cols <= 2 ? 18 : 22,
+                        color: isTop3 ? 'var(--gold)' : 'var(--ink-light)',
+                        lineHeight: 1, flexShrink: 0, letterSpacing: '-0.03em',
                       }}>
-                        {boxChange >= 0 ? '+' : ''}{boxChange.toFixed(1)}%
+                        #{i + 1}
                       </span>
-                    ) : boxChange === 'insufficient' ? (
-                      <span style={{ fontSize: 11, color: 'var(--ink-light)' }}>{'< 30d data'}</span>
-                    ) : <span style={{ color: 'var(--cborder)', fontSize: 13 }}>—</span>}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--ink)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {s.set_name}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: 'var(--ink-light)', marginTop: 1 }}>
+                          {s.set_code?.toUpperCase()}{s.is_special_set ? ' · Special' : ''}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Metric (large) + SIR count (small) */}
+                    <div style={{ borderTop: '1px solid var(--cborder)', paddingTop: 7, marginTop: 5 }}>
+                      <div style={{ fontFamily: 'var(--fm)', fontSize: cols <= 2 ? 18 : 21, fontWeight: 700, color: metricColor, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                        {metricValue}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
+                        <span style={{ fontSize: 9.5, color: 'var(--ink-light)' }}>{metricLabel}</span>
+                        {s.sir_count != null && (
+                          <span style={{ fontFamily: 'var(--fm)', fontSize: 11, color: 'var(--ink-mid)', fontWeight: 500 }}>{s.sir_count} SIRs</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )

@@ -4,15 +4,17 @@ import { useState, useEffect } from 'react'
 import { SetPriceSnapshot } from '@/lib/types'
 import { fmt } from '@/lib/utils'
 
-export type ProductTab = 'box' | 'etb' | 'pack'
+export type ProductTab = 'box' | 'etb' | 'pack' | 'bundle' | 'bnb'
 export type ChangeResult = number | 'new' | null
 
-type SeriesKey = 'booster_box_market_price' | 'etb_market_price' | 'pack_market_price'
+type SeriesKey = 'booster_box_market_price' | 'etb_market_price' | 'pack_market_price' | 'bundle_price' | 'build_and_battle_price'
 
 const CHART_SERIES: { key: SeriesKey; label: string; col: string; tab: ProductTab }[] = [
-  { key: 'booster_box_market_price', label: 'Box',  col: '#2d7dd2',         tab: 'box' },
-  { key: 'etb_market_price',         label: 'ETB',  col: 'var(--gold)',      tab: 'etb' },
-  { key: 'pack_market_price',        label: 'Pack', col: 'var(--ink-light)', tab: 'pack' },
+  { key: 'booster_box_market_price', label: 'Box',    col: '#2d7dd2',         tab: 'box'    },
+  { key: 'etb_market_price',         label: 'ETB',    col: 'var(--gold)',      tab: 'etb'    },
+  { key: 'pack_market_price',        label: 'Pack',   col: 'var(--ink-light)', tab: 'pack'   },
+  { key: 'bundle_price',             label: 'Bundle', col: '#9b59b6',          tab: 'bundle' },
+  { key: 'build_and_battle_price',   label: 'B&B',    col: '#e67e22',          tab: 'bnb'    },
 ]
 
 // Returns %, 'new' (< 9 days of history), or null (no data)
@@ -136,8 +138,10 @@ export default function SealedProductModal({
   const snaps = [...snapshots].sort((a, b) => a.snapshot_date.localeCompare(b.snapshot_date))
 
   const focusKey: keyof SetPriceSnapshot =
-    focusProduct === 'box'  ? 'booster_box_market_price' :
-    focusProduct === 'etb'  ? 'etb_market_price' : 'pack_market_price'
+    focusProduct === 'box'    ? 'booster_box_market_price' :
+    focusProduct === 'etb'    ? 'etb_market_price' :
+    focusProduct === 'pack'   ? 'pack_market_price' :
+    focusProduct === 'bundle' ? 'bundle_price' : 'build_and_battle_price'
 
   const currentPrice = (newestFirst[0]?.[focusKey] as number | null) ?? null
   const launchSnap   = snaps[0] ?? null
@@ -146,8 +150,10 @@ export default function SealedProductModal({
   const change7d     = computeChange7d(newestFirst, focusKey)
 
   const focusLabel =
-    focusProduct === 'box'  ? 'Booster Box' :
-    focusProduct === 'etb'  ? 'Elite Trainer Box' : 'Booster Pack'
+    focusProduct === 'box'    ? 'Booster Box' :
+    focusProduct === 'etb'    ? 'Elite Trainer Box' :
+    focusProduct === 'pack'   ? 'Booster Pack' :
+    focusProduct === 'bundle' ? 'Booster Bundle' : 'Build & Battle'
 
   // SVG chart dimensions
   const W = 440, H = 130, PX = 4, PY = 10

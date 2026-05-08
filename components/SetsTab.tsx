@@ -367,9 +367,11 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 {(
                   [
-                    { tab: 'box'  as ProductTab, label: 'Booster Box',      price: setRow.boxPrice,  key: 'booster_box_market_price' as keyof SetPriceSnapshot },
-                    { tab: 'etb'  as ProductTab, label: 'Elite Trainer Box', price: setRow.etbPrice,  key: 'etb_market_price'         as keyof SetPriceSnapshot },
-                    { tab: 'pack' as ProductTab, label: 'Booster Pack',      price: setRow.packPrice, key: 'pack_market_price'        as keyof SetPriceSnapshot },
+                    { tab: 'box'    as ProductTab, label: 'Booster Box',      price: setRow.boxPrice,          key: 'booster_box_market_price'  as keyof SetPriceSnapshot },
+                    { tab: 'etb'    as ProductTab, label: 'Elite Trainer Box', price: setRow.etbPrice,          key: 'etb_market_price'          as keyof SetPriceSnapshot },
+                    { tab: 'pack'   as ProductTab, label: 'Booster Pack',      price: setRow.packPrice,         key: 'pack_market_price'         as keyof SetPriceSnapshot },
+                    { tab: 'bundle' as ProductTab, label: 'Booster Bundle',    price: setRow.set_price_snapshots?.[0]?.bundle_price ?? null,          key: 'bundle_price'              as keyof SetPriceSnapshot },
+                    { tab: 'bnb'    as ProductTab, label: 'Build & Battle',    price: setRow.set_price_snapshots?.[0]?.build_and_battle_price ?? null, key: 'build_and_battle_price'    as keyof SetPriceSnapshot },
                   ] as { tab: ProductTab; label: string; price: number | null; key: keyof SetPriceSnapshot }[]
                 ).map(({ tab, label, price, key }) => {
                   if (price == null) return null

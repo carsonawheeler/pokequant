@@ -50,7 +50,7 @@ export interface SetPriceSnapshot {
   booster_box_market_price: number | null
   etb_market_price: number | null
   bundle_price?: number | null
-  collection_box_price?: number | null
+  build_and_battle_price?: number | null
   snapshot_date: string
 }
 

@@ -7,7 +7,7 @@ import SealedProductModal, {
   ProductTab, ChangeResult, ChangeBadge, computeChange,
 } from './SealedProductModal'
 
-// 'all' extends ProductTab for the filter
+// 'all' extends ProductTab for the filter — ProductTab now includes bundle + bnb
 type ProductFilter = 'all' | ProductTab
 type EraFilter     = 'all' | 'sv' | 'swsh'
 
@@ -30,30 +30,38 @@ interface ProductCard {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PRICE_KEY: Record<ProductTab, keyof SetPriceSnapshot> = {
-  box:  'booster_box_market_price',
-  etb:  'etb_market_price',
-  pack: 'pack_market_price',
+  box:    'booster_box_market_price',
+  etb:    'etb_market_price',
+  pack:   'pack_market_price',
+  bundle: 'bundle_price',
+  bnb:    'build_and_battle_price',
 }
 
 const PRODUCT_LABELS: Record<ProductTab, string> = {
-  box:  'Booster Box',
-  etb:  'Elite Trainer Box',
-  pack: 'Booster Pack',
+  box:    'Booster Box',
+  etb:    'Elite Trainer Box',
+  pack:   'Booster Pack',
+  bundle: 'Booster Bundle',
+  bnb:    'Build & Battle',
 }
 
 const PILL: Record<ProductTab, { bg: string; color: string; label: string }> = {
-  box:  { bg: '#2d7dd2',     color: '#fff', label: 'BOX'  },
-  etb:  { bg: 'var(--gold)', color: '#fff', label: 'ETB'  },
-  pack: { bg: '#2a9d6e',     color: '#fff', label: 'PACK' },
+  box:    { bg: '#2d7dd2',     color: '#fff', label: 'BOX'    },
+  etb:    { bg: 'var(--gold)', color: '#fff', label: 'ETB'    },
+  pack:   { bg: '#2a9d6e',     color: '#fff', label: 'PACK'   },
+  bundle: { bg: '#9b59b6',     color: '#fff', label: 'BUNDLE' },
+  bnb:    { bg: '#e67e22',     color: '#fff', label: 'B&B'    },
 }
 
-const PRODUCT_TYPES: ProductTab[] = ['box', 'etb', 'pack']
+const PRODUCT_TYPES: ProductTab[] = ['box', 'etb', 'pack', 'bundle', 'bnb']
 
 const FILTER_TABS: { id: ProductFilter; label: string }[] = [
-  { id: 'all',  label: 'All'         },
-  { id: 'box',  label: 'Booster Box' },
-  { id: 'etb',  label: 'ETB'         },
-  { id: 'pack', label: 'Pack'        },
+  { id: 'all',    label: 'All'           },
+  { id: 'box',    label: 'Booster Box'   },
+  { id: 'etb',    label: 'ETB'           },
+  { id: 'pack',   label: 'Pack'          },
+  { id: 'bundle', label: 'Bundle'        },
+  { id: 'bnb',    label: 'Build & Battle'},
 ]
 
 const ERA_FILTERS: { id: EraFilter; label: string }[] = [

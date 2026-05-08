@@ -70,7 +70,7 @@ export default function Home() {
             .select(`
               id, set_name, set_code, era, sir_count, is_special_set,
               release_date, set_premium_score, logo_url,
-              set_price_snapshots(pack_market_price, booster_box_market_price, etb_market_price, bundle_price, collection_box_price, snapshot_date)
+              set_price_snapshots(pack_market_price, booster_box_market_price, etb_market_price, bundle_price, build_and_battle_price, snapshot_date)
             `)
             .order('id'),
         ])

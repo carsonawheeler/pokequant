@@ -426,6 +426,7 @@ export function SetModal({ setRow, cards, setsMap, onClose }: {
           setCode={setRow.set_code}
           era={setRow.era}
           isSpecialSet={setRow.is_special_set}
+          setLogoUrl={setRow.logoUrl}
           logoUrl={setRow.logoUrl}
           snapshots={setRow.set_price_snapshots ?? []}
           focusProduct={sealedFocus}

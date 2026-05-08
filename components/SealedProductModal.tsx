@@ -99,14 +99,15 @@ interface SealedProductModalProps {
   setCode: string | null
   era: string | null
   isSpecialSet: boolean | number | null
-  logoUrl: string
+  setLogoUrl: string   // always the set logo for blurred bg
+  logoUrl: string      // real product image, or same as setLogoUrl
   snapshots: SetPriceSnapshot[]  // newest-first
   focusProduct: ProductTab
   onClose: () => void
 }
 
 export default function SealedProductModal({
-  setName, setCode, era, isSpecialSet, logoUrl, snapshots, focusProduct, onClose
+  setName, setCode, era, isSpecialSet, setLogoUrl, logoUrl, snapshots, focusProduct, onClose
 }: SealedProductModalProps) {
   const [visibleLines, setVisibleLines] = useState<Set<ProductTab>>(
     () => new Set(['box', 'etb', 'pack'] as ProductTab[])
@@ -220,94 +221,83 @@ export default function SealedProductModal({
     <div className="modal-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal-box" style={{ maxWidth: 520 }}>
 
-        {hasRealImage ? (
-          /* ── Hero for real product photos — contained on dark bg ── */
+        {/* ── Modal header: blurred set logo bg + product image on top ── */}
+        <div style={{
+          position: 'relative', height: 200, overflow: 'hidden',
+          borderRadius: '12px 12px 0 0',
+          background: '#1e1e2e',
+        }}>
+          {/* Blurred set logo background */}
           <div style={{
-            position: 'relative', height: 220, overflow: 'hidden',
-            borderRadius: '12px 12px 0 0',
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+            position: 'absolute', inset: -8,
+            backgroundImage: `url(${setLogoUrl})`,
+            backgroundSize: '130%', backgroundPosition: 'center',
+            filter: 'blur(10px) brightness(0.45) saturate(1.8)',
+            transform: 'scale(1.1)',
+          }} />
+
+          {/* Centered product image */}
+          <div style={{
+            position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
           }}>
-            <img
-              src={logoUrl}
-              alt={setName}
-              style={{
-                maxHeight: '80%', maxWidth: '45%',
-                objectFit: 'contain',
-                filter: 'drop-shadow(0 6px 24px rgba(0,0,0,0.55))',
-              }}
-              onError={e => { e.currentTarget.style.opacity = '0' }}
-            />
-            {/* Bottom gradient for text legibility */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 55%)',
-              pointerEvents: 'none',
-            }} />
-            {/* Title text on gradient */}
-            <div style={{ position: 'absolute', bottom: 16, left: 24, right: 52 }}>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
-                {era ?? 'TCG'} · {setCode?.toUpperCase()}
-                {!!isSpecialSet && (
-                  <span style={{ marginLeft: 8, color: 'var(--gold)', fontWeight: 700 }}>Special</span>
-                )}
-              </div>
-              <h2 style={{ fontFamily: 'var(--fd)', fontSize: 22, fontStyle: 'italic', color: '#fff', lineHeight: 1.1, marginBottom: 2 }}>
-                {setName}
-              </h2>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
-                {snaps.length} snapshots · {focusLabel}
-              </div>
-            </div>
-            {/* Close button */}
-            <button
-              className="modal-close-btn"
-              onClick={onClose}
-              style={{
-                position: 'absolute', top: 12, right: 12,
-                width: 30, height: 30, borderRadius: 7,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 16, color: '#fff', background: 'rgba(0,0,0,0.45)',
-                border: 'none',
-              }}
-            >✕</button>
-          </div>
-        ) : (
-          /* ── Original header for set logo placeholders ── */
-          <div style={{ padding: '18px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {hasRealImage ? (
               <img
                 src={logoUrl}
                 alt={setName}
-                style={{ height: 36, objectFit: 'contain', flexShrink: 0 }}
-                onError={e => { e.currentTarget.style.display = 'none' }}
+                style={{
+                  maxHeight: '100%', maxWidth: '50%',
+                  objectFit: 'contain',
+                  mixBlendMode: 'multiply',
+                  filter: 'brightness(1.3)',
+                }}
+                onError={e => { e.currentTarget.style.opacity = '0' }}
               />
-              <div>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)', marginBottom: 3 }}>
-                  {era ?? 'TCG'} · {setCode?.toUpperCase()}
-                  {!!isSpecialSet && (
-                    <span style={{ marginLeft: 8, color: 'var(--gold)', fontWeight: 700 }}>Special</span>
-                  )}
-                </div>
-                <h2 style={{ fontFamily: 'var(--fd)', fontSize: 22, fontStyle: 'italic', color: 'var(--ink)', lineHeight: 1.1, marginBottom: 2 }}>
-                  {setName}
-                </h2>
-                <div style={{ fontSize: 11, color: 'var(--ink-mid)' }}>
-                  {snaps.length} snapshots · {focusLabel}
-                </div>
-              </div>
-            </div>
-            <button
-              className="modal-close-btn"
-              onClick={onClose}
-              style={{
-                width: 30, height: 30, borderRadius: 7, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 16, color: 'var(--ink-light)', background: 'var(--c2)',
-              }}
-            >✕</button>
+            ) : (
+              <img
+                src={setLogoUrl}
+                alt={setName}
+                style={{ maxHeight: '100%', maxWidth: '70%', objectFit: 'contain' }}
+                onError={e => { e.currentTarget.style.opacity = '0' }}
+              />
+            )}
           </div>
-        )}
+
+          {/* Bottom gradient for title text */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%)',
+            pointerEvents: 'none',
+          }} />
+          {/* Title */}
+          <div style={{ position: 'absolute', bottom: 14, left: 20, right: 48 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'rgba(255,255,255,0.55)', marginBottom: 2 }}>
+              {era ?? 'TCG'} · {setCode?.toUpperCase()}
+              {!!isSpecialSet && (
+                <span style={{ marginLeft: 8, color: 'var(--gold)', fontWeight: 700 }}>Special</span>
+              )}
+            </div>
+            <h2 style={{ fontFamily: 'var(--fd)', fontSize: 20, fontStyle: 'italic', color: '#fff', lineHeight: 1.1, marginBottom: 1 }}>
+              {setName}
+            </h2>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
+              {snaps.length} snapshots · {focusLabel}
+            </div>
+          </div>
+          {/* Close button */}
+          <button
+            className="modal-close-btn"
+            onClick={onClose}
+            style={{
+              position: 'absolute', top: 10, right: 10,
+              width: 28, height: 28, borderRadius: 7,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 15, color: '#fff', background: 'rgba(0,0,0,0.4)',
+              border: 'none',
+            }}
+          >✕</button>
+        </div>
 
         {/* Stats strip: current, 7d, 30d, launch */}
         <div style={{

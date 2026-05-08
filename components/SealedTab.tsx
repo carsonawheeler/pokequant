@@ -21,7 +21,8 @@ interface ProductCard {
   setCode:      string | null
   era:          string | null
   isSpecialSet: boolean | number | null
-  logoUrl:      string
+  setLogoUrl:   string         // always the set logo (pokemontcg.io or logo_url)
+  logoUrl:      string         // real TCGPlayer product image, or same as setLogoUrl
   currentPrice: number
   change30d:    ChangeResult
   snapshots:    SetPriceSnapshot[]   // newest-first, forwarded to modal
@@ -94,10 +95,7 @@ function SealedCard({ card, cols, onClick }: {
   onClick: () => void
 }) {
   const hasRealImage = card.logoUrl.includes('product-images.tcgplayer.com')
-  // Real product photos need more height to show portrait images clearly
-  const imgH = hasRealImage
-    ? (cols <= 2 ? 130 : cols === 3 ? 155 : 170)
-    : (cols <= 2 ? 80  : cols === 3 ? 100 : 110)
+  const imgH = cols <= 2 ? 110 : cols === 3 ? 120 : 130
   const pill = PILL[card.productType]
 
   return (
@@ -111,61 +109,52 @@ function SealedCard({ card, cols, onClick }: {
         display: 'flex', flexDirection: 'column', cursor: 'pointer',
       }}
     >
-      {/* Image area */}
+      {/* Image area — always uses set logo as blurred atmospheric background */}
       <div style={{
         height: imgH, flexShrink: 0, position: 'relative',
         borderBottom: '1px solid var(--cborder)', overflow: 'hidden',
-        background: hasRealImage
-          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'
-          : 'var(--c2)',
+        background: '#1e1e2e',
       }}>
-        {hasRealImage ? (
-          /* Real TCGPlayer product photo — contained, centered on dark bg */
-          <div style={{
-            position: 'absolute', inset: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '12px',
-          }}>
+        {/* Blurred set logo background — always rendered */}
+        <div style={{
+          position: 'absolute', inset: -8,
+          backgroundImage: `url(${card.setLogoUrl})`,
+          backgroundSize: '130%', backgroundPosition: 'center',
+          filter: 'blur(10px) brightness(0.45) saturate(1.8)',
+          transform: 'scale(1.1)',
+        }} />
+
+        {/* Centered image — product photo (with multiply) or set logo */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '8px',
+        }}>
+          {hasRealImage ? (
+            /* Real TCGPlayer product photo — multiply removes white bg */
             <img
               src={card.logoUrl}
               alt={card.setName}
               loading="lazy"
               style={{
-                maxWidth: '90%', maxHeight: '100%',
+                maxWidth: '85%', maxHeight: '100%',
                 objectFit: 'contain',
-                filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.4))',
+                mixBlendMode: 'multiply',
+                filter: 'brightness(1.3)',
               }}
               onError={e => { e.currentTarget.style.opacity = '0' }}
             />
-          </div>
-        ) : (
-          /* Set logo placeholder — blurred background treatment (unchanged) */
-          <>
-            {card.logoUrl && (
-              <div style={{
-                position: 'absolute', inset: -8,
-                backgroundImage: `url(${card.logoUrl})`,
-                backgroundSize: '130%', backgroundPosition: 'center',
-                filter: 'blur(18px) brightness(0.65) saturate(1.5)',
-                transform: 'scale(1.15)',
-              }} />
-            )}
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '6px 10px',
-            }}>
-              <img
-                src={card.logoUrl}
-                alt={card.setName}
-                loading="lazy"
-                style={{ maxWidth: '100%', maxHeight: imgH - 18, objectFit: 'contain' }}
-                onError={e => { e.currentTarget.style.opacity = '0' }}
-              />
-            </div>
-          </>
-        )}
+          ) : (
+            /* Set logo — no blend mode needed */
+            <img
+              src={card.setLogoUrl}
+              alt={card.setName}
+              loading="lazy"
+              style={{ maxWidth: '100%', maxHeight: imgH - 20, objectFit: 'contain' }}
+              onError={e => { e.currentTarget.style.opacity = '0' }}
+            />
+          )}
+        </div>
 
         {/* Product type pill — top-right */}
         <span style={{
@@ -263,7 +252,7 @@ export default function SealedTab({ setsData, loading, imageMap = {} }: SealedTa
     for (const s of setsData) {
       const snaps = s.set_price_snapshots ?? []   // newest-first
       if (snaps.length === 0) continue
-      const fallbackLogo = s.logo_url ?? `https://images.pokemontcg.io/${s.set_code}/logo.png`
+      const setLogoUrl = s.logo_url ?? `https://images.pokemontcg.io/${s.set_code}/logo.png`
 
       for (const pt of PRODUCT_TYPES) {
         const key       = PRICE_KEY[pt]
@@ -271,7 +260,7 @@ export default function SealedTab({ setsData, loading, imageMap = {} }: SealedTa
         if (price == null) continue   // this set has no data for this product type
 
         const mapKey  = `${s.id}_${pt}`
-        const logoUrl = imageMap[mapKey] ?? fallbackLogo
+        const logoUrl = imageMap[mapKey] ?? setLogoUrl
         const change30d = computeChange(snaps, key)
         cards.push({
           key:          mapKey,
@@ -282,6 +271,7 @@ export default function SealedTab({ setsData, loading, imageMap = {} }: SealedTa
           setCode:      s.set_code,
           era:          s.era,
           isSpecialSet: s.is_special_set,
+          setLogoUrl,
           logoUrl,
           currentPrice: price,
           change30d,
@@ -431,6 +421,7 @@ export default function SealedTab({ setsData, loading, imageMap = {} }: SealedTa
           setCode={selected.setCode}
           era={selected.era}
           isSpecialSet={selected.isSpecialSet}
+          setLogoUrl={selected.setLogoUrl}
           logoUrl={selected.logoUrl}
           snapshots={selected.snapshots}
           focusProduct={selected.productType}

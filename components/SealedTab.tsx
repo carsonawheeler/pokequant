@@ -93,9 +93,12 @@ function SealedCard({ card, cols, onClick }: {
   cols:    number
   onClick: () => void
 }) {
-  const imgH = cols <= 2 ? 80 : cols === 3 ? 100 : 110
-  const pill = PILL[card.productType]
   const hasRealImage = card.logoUrl.includes('product-images.tcgplayer.com')
+  // Real product photos need more height to show portrait images clearly
+  const imgH = hasRealImage
+    ? (cols <= 2 ? 130 : cols === 3 ? 155 : 170)
+    : (cols <= 2 ? 80  : cols === 3 ? 100 : 110)
+  const pill = PILL[card.productType]
 
   return (
     <div
@@ -112,31 +115,31 @@ function SealedCard({ card, cols, onClick }: {
       <div style={{
         height: imgH, flexShrink: 0, position: 'relative',
         borderBottom: '1px solid var(--cborder)', overflow: 'hidden',
-        background: hasRealImage ? '#111' : 'var(--c2)',
+        background: hasRealImage
+          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'
+          : 'var(--c2)',
       }}>
         {hasRealImage ? (
-          /* Real TCGPlayer product photo — full bleed, no color manipulation */
-          <>
+          /* Real TCGPlayer product photo — contained, centered on dark bg */
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '12px',
+          }}>
             <img
               src={card.logoUrl}
               alt={card.setName}
               loading="lazy"
               style={{
-                position: 'absolute', inset: 0,
-                width: '100%', height: '100%',
-                objectFit: 'cover', objectPosition: 'center',
+                maxWidth: '90%', maxHeight: '100%',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.4))',
               }}
               onError={e => { e.currentTarget.style.opacity = '0' }}
             />
-            {/* Subtle bottom gradient for depth */}
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%',
-              background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 100%)',
-              pointerEvents: 'none',
-            }} />
-          </>
+          </div>
         ) : (
-          /* Set logo placeholder — blurred background treatment */
+          /* Set logo placeholder — blurred background treatment (unchanged) */
           <>
             {card.logoUrl && (
               <div style={{

@@ -221,18 +221,28 @@ export default function SealedProductModal({
       <div className="modal-box" style={{ maxWidth: 520 }}>
 
         {hasRealImage ? (
-          /* ── Hero image header for real TCGPlayer product photos ── */
-          <div style={{ position: 'relative', height: 200, overflow: 'hidden', borderRadius: '12px 12px 0 0' }}>
+          /* ── Hero for real product photos — contained on dark bg ── */
+          <div style={{
+            position: 'relative', height: 220, overflow: 'hidden',
+            borderRadius: '12px 12px 0 0',
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
             <img
               src={logoUrl}
               alt={setName}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+              style={{
+                maxHeight: '80%', maxWidth: '45%',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 6px 24px rgba(0,0,0,0.55))',
+              }}
               onError={e => { e.currentTarget.style.opacity = '0' }}
             />
-            {/* Gradient overlay for text legibility */}
+            {/* Bottom gradient for text legibility */}
             <div style={{
               position: 'absolute', inset: 0,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.1) 55%, transparent 100%)',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 55%)',
+              pointerEvents: 'none',
             }} />
             {/* Title text on gradient */}
             <div style={{ position: 'absolute', bottom: 16, left: 24, right: 52 }}>
@@ -249,7 +259,7 @@ export default function SealedProductModal({
                 {snaps.length} snapshots · {focusLabel}
               </div>
             </div>
-            {/* Close button overlaid on image */}
+            {/* Close button */}
             <button
               className="modal-close-btn"
               onClick={onClose}

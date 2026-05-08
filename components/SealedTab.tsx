@@ -95,7 +95,7 @@ function SealedCard({ card, cols, onClick }: {
   onClick: () => void
 }) {
   const hasRealImage = card.logoUrl.includes('product-images.tcgplayer.com')
-  const imgH = cols <= 2 ? 110 : cols === 3 ? 120 : 130
+  const imgH = cols <= 2 ? 80 : cols === 3 ? 100 : 110
   const pill = PILL[card.productType]
 
   return (
@@ -109,26 +109,26 @@ function SealedCard({ card, cols, onClick }: {
         display: 'flex', flexDirection: 'column', cursor: 'pointer',
       }}
     >
-      {/* Image area — always uses set logo as blurred atmospheric background */}
+      {/* Image area — blurred set logo background, product image on top */}
       <div style={{
         height: imgH, flexShrink: 0, position: 'relative',
         borderBottom: '1px solid var(--cborder)', overflow: 'hidden',
-        background: '#1e1e2e',
       }}>
-        {/* Blurred set logo background — always rendered */}
+        {/* Blurred set logo background — exact same treatment as Sets tab */}
         <div style={{
-          position: 'absolute', inset: -8,
+          position: 'absolute', inset: -16,
           backgroundImage: `url(${card.setLogoUrl})`,
           backgroundSize: '130%', backgroundPosition: 'center',
-          filter: 'blur(10px) brightness(0.45) saturate(1.8)',
-          transform: 'scale(1.1)',
+          filter: 'blur(18px) brightness(0.65) saturate(1.5)',
+          transform: 'scale(1.15)',
         }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
 
         {/* Centered image — product photo (with multiply) or set logo */}
         <div style={{
           position: 'absolute', inset: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '8px',
+          padding: '5px 10px',
         }}>
           {hasRealImage ? (
             /* Real TCGPlayer product photo — multiply removes white bg */
@@ -137,20 +137,20 @@ function SealedCard({ card, cols, onClick }: {
               alt={card.setName}
               loading="lazy"
               style={{
-                maxWidth: '85%', maxHeight: '100%',
+                maxWidth: '80%', maxHeight: '80%',
                 objectFit: 'contain',
                 mixBlendMode: 'multiply',
-                filter: 'brightness(1.3)',
+                filter: 'brightness(1.2)',
               }}
               onError={e => { e.currentTarget.style.opacity = '0' }}
             />
           ) : (
-            /* Set logo — no blend mode needed */
+            /* Set logo — no blend mode needed, same as Sets tab */
             <img
               src={card.setLogoUrl}
               alt={card.setName}
               loading="lazy"
-              style={{ maxWidth: '100%', maxHeight: imgH - 20, objectFit: 'contain' }}
+              style={{ maxWidth: '100%', maxHeight: imgH - 18, objectFit: 'contain' }}
               onError={e => { e.currentTarget.style.opacity = '0' }}
             />
           )}

@@ -225,16 +225,16 @@ export default function SealedProductModal({
         <div style={{
           position: 'relative', height: 200, overflow: 'hidden',
           borderRadius: '12px 12px 0 0',
-          background: '#1e1e2e',
         }}>
-          {/* Blurred set logo background */}
+          {/* Blurred set logo background — exact same treatment as Sets tab */}
           <div style={{
-            position: 'absolute', inset: -8,
+            position: 'absolute', inset: -16,
             backgroundImage: `url(${setLogoUrl})`,
             backgroundSize: '130%', backgroundPosition: 'center',
-            filter: 'blur(10px) brightness(0.45) saturate(1.8)',
-            transform: 'scale(1.1)',
+            filter: 'blur(18px) brightness(0.65) saturate(1.5)',
+            transform: 'scale(1.15)',
           }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
 
           {/* Centered product image */}
           <div style={{
@@ -247,10 +247,10 @@ export default function SealedProductModal({
                 src={logoUrl}
                 alt={setName}
                 style={{
-                  maxHeight: '100%', maxWidth: '50%',
+                  maxHeight: '80%', maxWidth: '45%',
                   objectFit: 'contain',
                   mixBlendMode: 'multiply',
-                  filter: 'brightness(1.3)',
+                  filter: 'brightness(1.2)',
                 }}
                 onError={e => { e.currentTarget.style.opacity = '0' }}
               />
@@ -258,7 +258,7 @@ export default function SealedProductModal({
               <img
                 src={setLogoUrl}
                 alt={setName}
-                style={{ maxHeight: '100%', maxWidth: '70%', objectFit: 'contain' }}
+                style={{ maxHeight: '80%', maxWidth: '70%', objectFit: 'contain' }}
                 onError={e => { e.currentTarget.style.opacity = '0' }}
               />
             )}

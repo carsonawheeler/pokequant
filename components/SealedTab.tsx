@@ -124,9 +124,9 @@ function SealedCard({ card, cols, onClick }: {
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
 
-        {/* Centered logo */}
+        {/* Centered product image — no zIndex to avoid isolated stacking context */}
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
+          position: 'absolute', inset: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '6px 10px',
         }}>
@@ -134,7 +134,11 @@ function SealedCard({ card, cols, onClick }: {
             src={card.logoUrl}
             alt={card.setName}
             loading="lazy"
-            style={{ maxWidth: '100%', maxHeight: imgH - 18, objectFit: 'contain' }}
+            style={{
+              maxWidth: '100%', maxHeight: imgH - 18, objectFit: 'contain',
+              mixBlendMode: 'multiply', background: 'transparent',
+              filter: 'brightness(1.6) saturate(1.1)',
+            }}
             onError={e => { e.currentTarget.style.opacity = '0' }}
           />
         </div>
@@ -217,11 +221,12 @@ function SealedSkel({ cols }: { cols: number }) {
 // ── Main SealedTab ────────────────────────────────────────────────────────────
 
 interface SealedTabProps {
-  setsData: SetData[]
-  loading:  boolean
+  setsData:  SetData[]
+  loading:   boolean
+  imageMap?: Record<string, string>   // `${set_id}_${productTab}` → image_url
 }
 
-export default function SealedTab({ setsData, loading }: SealedTabProps) {
+export default function SealedTab({ setsData, loading, imageMap = {} }: SealedTabProps) {
   const [productFilter, setProductFilter] = useState<ProductFilter>('all')
   const [eraFilter,     setEraFilter]     = useState<EraFilter>('all')
   const [query,         setQuery]         = useState('')
@@ -234,16 +239,18 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
     for (const s of setsData) {
       const snaps = s.set_price_snapshots ?? []   // newest-first
       if (snaps.length === 0) continue
-      const logoUrl = s.logo_url ?? `https://images.pokemontcg.io/${s.set_code}/logo.png`
+      const fallbackLogo = s.logo_url ?? `https://images.pokemontcg.io/${s.set_code}/logo.png`
 
       for (const pt of PRODUCT_TYPES) {
         const key       = PRICE_KEY[pt]
         const price     = snaps[0]?.[key] as number | null
         if (price == null) continue   // this set has no data for this product type
 
+        const mapKey  = `${s.id}_${pt}`
+        const logoUrl = imageMap[mapKey] ?? fallbackLogo
         const change30d = computeChange(snaps, key)
         cards.push({
-          key:          `${s.id}_${pt}`,
+          key:          mapKey,
           productType:  pt,
           productLabel: PRODUCT_LABELS[pt],
           setId:        s.id,
@@ -259,7 +266,7 @@ export default function SealedTab({ setsData, loading }: SealedTabProps) {
       }
     }
     return cards
-  }, [setsData])
+  }, [setsData, imageMap])
 
   const filtered = useMemo(() => {
     let base = [...allCards]

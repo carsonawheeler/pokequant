@@ -27,18 +27,19 @@ const SUBTITLES: Record<Exclude<TabId, 'home'>, string> = {
 }
 
 export default function Home() {
-  const [tab,        setTab]        = useState<TabId>('home')
-  const [cards,      setCards]      = useState<Card[]>([])
-  const [setsData,   setSetsData]   = useState<SetData[]>([])
-  const [sealedData, setSealedData] = useState<SetData[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [error,      setError]      = useState<string | null>(null)
+  const [tab,             setTab]             = useState<TabId>('home')
+  const [cards,           setCards]           = useState<Card[]>([])
+  const [setsData,        setSetsData]        = useState<SetData[]>([])
+  const [sealedData,      setSealedData]      = useState<SetData[]>([])
+  const [sealedImageMap,  setSealedImageMap]  = useState<Record<string, string>>({})
+  const [loading,         setLoading]         = useState(true)
+  const [error,           setError]           = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
       try {
-        // Parallel: cards + SV sets + all-era sealed sets
-        const [cardsRes, setsRes, sealedRes] = await Promise.all([
+        // Parallel: cards + SV sets + all-era sealed sets + sealed product images
+        const [cardsRes, setsRes, sealedRes, sealedImgRes] = await Promise.all([
           supabase
             .from('cards')
             .select(`
@@ -73,11 +74,33 @@ export default function Home() {
               set_price_snapshots(pack_market_price, booster_box_market_price, etb_market_price, bundle_price, build_and_battle_price, snapshot_date)
             `)
             .order('id'),
+
+          supabase
+            .from('sealed_products')
+            .select('set_id, product_type, image_url')
+            .not('image_url', 'is', null),
         ])
 
-        if (cardsRes.error)   throw new Error(cardsRes.error.message)
-        if (setsRes.error)    throw new Error(setsRes.error.message)
-        if (sealedRes.error)  throw new Error(sealedRes.error.message)
+        if (cardsRes.error)    throw new Error(cardsRes.error.message)
+        if (setsRes.error)     throw new Error(setsRes.error.message)
+        if (sealedRes.error)   throw new Error(sealedRes.error.message)
+
+        // Build sealed product image map: `${set_id}_${productTab}` → image_url
+        const DB_TYPE_TO_TAB: Record<string, string> = {
+          booster_box:      'box',
+          etb:              'etb',
+          pack:             'pack',
+          bundle:           'bundle',
+          build_and_battle: 'bnb',
+        }
+        const imgMap: Record<string, string> = {}
+        ;(sealedImgRes.data ?? []).forEach((row: { set_id: number; product_type: string; image_url: string | null }) => {
+          const tab = DB_TYPE_TO_TAB[row.product_type]
+          if (tab && row.image_url) {
+            imgMap[`${row.set_id}_${tab}`] = row.image_url
+          }
+        })
+        setSealedImageMap(imgMap)
 
         // Filter SV era cards, build card ID list
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -232,7 +255,7 @@ export default function Home() {
           <>
             {tab === 'cards'       && <CardGrid      cards={cards}  loading={loading} setsMap={setsMap} />}
             {tab === 'sets'        && <SetsTab        cards={cards}  setsData={setsData} loading={loading} setsMap={setsMap} />}
-            {tab === 'sealed'      && <SealedTab      setsData={sealedData} loading={loading} />}
+            {tab === 'sealed'      && <SealedTab      setsData={sealedData} loading={loading} imageMap={sealedImageMap} />}
             {tab === 'leaderboard' && <LeaderboardTab cards={cards}  loading={loading} setsMap={setsMap} setsData={setsData} />}
           </>
         )}

@@ -224,7 +224,11 @@ export default function SealedProductModal({
             <img
               src={logoUrl}
               alt={setName}
-              style={{ height: 36, objectFit: 'contain', flexShrink: 0 }}
+              style={{
+                height: 36, objectFit: 'contain', flexShrink: 0,
+                mixBlendMode: 'multiply', background: 'transparent',
+                filter: 'brightness(1.6) saturate(1.1)',
+              }}
               onError={e => { e.currentTarget.style.display = 'none' }}
             />
             <div>

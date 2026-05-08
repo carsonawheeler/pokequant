@@ -214,48 +214,90 @@ export default function SealedProductModal({
     })
   }
 
+  const hasRealImage = logoUrl.includes('product-images.tcgplayer.com')
+
   return (
     <div className="modal-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal-box" style={{ maxWidth: 520 }}>
 
-        {/* Header */}
-        <div style={{ padding: '18px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {hasRealImage ? (
+          /* ── Hero image header for real TCGPlayer product photos ── */
+          <div style={{ position: 'relative', height: 200, overflow: 'hidden', borderRadius: '12px 12px 0 0' }}>
             <img
               src={logoUrl}
               alt={setName}
-              style={{
-                height: 36, objectFit: 'contain', flexShrink: 0,
-                mixBlendMode: 'multiply', background: 'transparent',
-                filter: 'brightness(1.6) saturate(1.1)',
-              }}
-              onError={e => { e.currentTarget.style.display = 'none' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+              onError={e => { e.currentTarget.style.opacity = '0' }}
             />
-            <div>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)', marginBottom: 3 }}>
+            {/* Gradient overlay for text legibility */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.1) 55%, transparent 100%)',
+            }} />
+            {/* Title text on gradient */}
+            <div style={{ position: 'absolute', bottom: 16, left: 24, right: 52 }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
                 {era ?? 'TCG'} · {setCode?.toUpperCase()}
                 {!!isSpecialSet && (
                   <span style={{ marginLeft: 8, color: 'var(--gold)', fontWeight: 700 }}>Special</span>
                 )}
               </div>
-              <h2 style={{ fontFamily: 'var(--fd)', fontSize: 22, fontStyle: 'italic', color: 'var(--ink)', lineHeight: 1.1, marginBottom: 2 }}>
+              <h2 style={{ fontFamily: 'var(--fd)', fontSize: 22, fontStyle: 'italic', color: '#fff', lineHeight: 1.1, marginBottom: 2 }}>
                 {setName}
               </h2>
-              <div style={{ fontSize: 11, color: 'var(--ink-mid)' }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
                 {snaps.length} snapshots · {focusLabel}
               </div>
             </div>
+            {/* Close button overlaid on image */}
+            <button
+              className="modal-close-btn"
+              onClick={onClose}
+              style={{
+                position: 'absolute', top: 12, right: 12,
+                width: 30, height: 30, borderRadius: 7,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, color: '#fff', background: 'rgba(0,0,0,0.45)',
+                border: 'none',
+              }}
+            >✕</button>
           </div>
-          <button
-            className="modal-close-btn"
-            onClick={onClose}
-            style={{
-              width: 30, height: 30, borderRadius: 7, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16, color: 'var(--ink-light)', background: 'var(--c2)',
-            }}
-          >✕</button>
-        </div>
+        ) : (
+          /* ── Original header for set logo placeholders ── */
+          <div style={{ padding: '18px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <img
+                src={logoUrl}
+                alt={setName}
+                style={{ height: 36, objectFit: 'contain', flexShrink: 0 }}
+                onError={e => { e.currentTarget.style.display = 'none' }}
+              />
+              <div>
+                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--ink-light)', marginBottom: 3 }}>
+                  {era ?? 'TCG'} · {setCode?.toUpperCase()}
+                  {!!isSpecialSet && (
+                    <span style={{ marginLeft: 8, color: 'var(--gold)', fontWeight: 700 }}>Special</span>
+                  )}
+                </div>
+                <h2 style={{ fontFamily: 'var(--fd)', fontSize: 22, fontStyle: 'italic', color: 'var(--ink)', lineHeight: 1.1, marginBottom: 2 }}>
+                  {setName}
+                </h2>
+                <div style={{ fontSize: 11, color: 'var(--ink-mid)' }}>
+                  {snaps.length} snapshots · {focusLabel}
+                </div>
+              </div>
+            </div>
+            <button
+              className="modal-close-btn"
+              onClick={onClose}
+              style={{
+                width: 30, height: 30, borderRadius: 7, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, color: 'var(--ink-light)', background: 'var(--c2)',
+              }}
+            >✕</button>
+          </div>
+        )}
 
         {/* Stats strip: current, 7d, 30d, launch */}
         <div style={{

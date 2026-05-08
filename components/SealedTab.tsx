@@ -95,6 +95,7 @@ function SealedCard({ card, cols, onClick }: {
 }) {
   const imgH = cols <= 2 ? 80 : cols === 3 ? 100 : 110
   const pill = PILL[card.productType]
+  const hasRealImage = card.logoUrl.includes('product-images.tcgplayer.com')
 
   return (
     <div
@@ -107,41 +108,61 @@ function SealedCard({ card, cols, onClick }: {
         display: 'flex', flexDirection: 'column', cursor: 'pointer',
       }}
     >
-      {/* Logo with blurred background */}
+      {/* Image area */}
       <div style={{
         height: imgH, flexShrink: 0, position: 'relative',
         borderBottom: '1px solid var(--cborder)', overflow: 'hidden',
-        background: 'var(--c2)',
+        background: hasRealImage ? '#111' : 'var(--c2)',
       }}>
-        {card.logoUrl && (
-          <div style={{
-            position: 'absolute', inset: -8,
-            backgroundImage: `url(${card.logoUrl})`,
-            backgroundSize: '130%', backgroundPosition: 'center',
-            filter: 'blur(18px) brightness(0.65) saturate(1.5)',
-            transform: 'scale(1.15)',
-          }} />
+        {hasRealImage ? (
+          /* Real TCGPlayer product photo — full bleed, no color manipulation */
+          <>
+            <img
+              src={card.logoUrl}
+              alt={card.setName}
+              loading="lazy"
+              style={{
+                position: 'absolute', inset: 0,
+                width: '100%', height: '100%',
+                objectFit: 'cover', objectPosition: 'center',
+              }}
+              onError={e => { e.currentTarget.style.opacity = '0' }}
+            />
+            {/* Subtle bottom gradient for depth */}
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 100%)',
+              pointerEvents: 'none',
+            }} />
+          </>
+        ) : (
+          /* Set logo placeholder — blurred background treatment */
+          <>
+            {card.logoUrl && (
+              <div style={{
+                position: 'absolute', inset: -8,
+                backgroundImage: `url(${card.logoUrl})`,
+                backgroundSize: '130%', backgroundPosition: 'center',
+                filter: 'blur(18px) brightness(0.65) saturate(1.5)',
+                transform: 'scale(1.15)',
+              }} />
+            )}
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '6px 10px',
+            }}>
+              <img
+                src={card.logoUrl}
+                alt={card.setName}
+                loading="lazy"
+                style={{ maxWidth: '100%', maxHeight: imgH - 18, objectFit: 'contain' }}
+                onError={e => { e.currentTarget.style.opacity = '0' }}
+              />
+            </div>
+          </>
         )}
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(237,232,216,0.32)' }} />
-
-        {/* Centered product image — no zIndex to avoid isolated stacking context */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '6px 10px',
-        }}>
-          <img
-            src={card.logoUrl}
-            alt={card.setName}
-            loading="lazy"
-            style={{
-              maxWidth: '100%', maxHeight: imgH - 18, objectFit: 'contain',
-              mixBlendMode: 'multiply', background: 'transparent',
-              filter: 'brightness(1.6) saturate(1.1)',
-            }}
-            onError={e => { e.currentTarget.style.opacity = '0' }}
-          />
-        </div>
 
         {/* Product type pill — top-right */}
         <span style={{
